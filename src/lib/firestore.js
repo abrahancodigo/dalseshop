@@ -536,6 +536,37 @@ export async function getCoupons() {
   }
 }
 
+export async function getOrdersByEmail(email) {
+  try {
+    if (!email) return [];
+    const q = query(
+      collection(db, "orders"),
+      where("customerEmail", "==", email),
+      orderBy("createdAt", "desc")
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (error) {
+    console.warn("getOrdersByEmail query failed, falling back to client-side filter:", error.message);
+    try {
+      const q = query(collection(db, "orders"));
+      const snapshot = await getDocs(q);
+      const results = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter(o => (o.customerEmail || "").toLowerCase() === email.toLowerCase());
+      results.sort((a, b) => {
+        const da = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+        const db2 = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+        return db2 - da;
+      });
+      return results;
+    } catch (err2) {
+      console.error("getOrdersByEmail fallback failed:", err2);
+      return [];
+    }
+  }
+}
+
 export async function getOrders() {
   try {
     const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));

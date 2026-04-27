@@ -88,9 +88,10 @@ export default function MisPedidosPage() {
     }
   };
 
-  const handleDownloadPDF = (order) => {
+  const handleDownloadPDF = async (order) => {
     try {
-      const doc = generateOrderInvoice(order, settings);
+      const origin = window.location.origin;
+      const doc = await generateOrderInvoice(order, settings, origin);
       doc.save(`Pedido_${(order.id || "0000").substring(0, 8).toUpperCase()}.pdf`);
     } catch (err) {
       console.error("Error generating PDF:", err);

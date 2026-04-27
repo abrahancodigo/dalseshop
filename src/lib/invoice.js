@@ -1,7 +1,7 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 
-export const generateOrderInvoice = (order, settings) => {
+export const generateOrderInvoice = async (order, settings, origin) => {
   const doc = new jsPDF({
     orientation: "portrait",
     unit: "mm",
@@ -13,34 +13,25 @@ export const generateOrderInvoice = (order, settings) => {
   const storePhone = settings?.phone || "";
   const storeEmail = settings?.email || "";
 
-  // Colors
-  const primaryColor = [108, 92, 231]; // Matches #6C5CE7
+  const primaryColor = [108, 92, 231];
   const textColor = [45, 52, 54];
   const mutedColor = [99, 110, 114];
 
-  // HEADER
   let headerY = 20;
-  
+
   if (settings?.logo) {
-    console.log("PDF Invoice: Logo detected, length:", settings.logo.length);
     try {
-      // Detect format from base64 if possible
       let format = "PNG";
-      if (settings.logo.includes("image/jpeg") || settings.logo.includes("image/jpg")) format = "JPEG";
-      else if (settings.logo.includes("image/webp")) format = "WEBP";
-      
-      // Calculate aspect ratio or use a fixed box
-      // Standard logo area: 35mm x 18mm
+      if (typeof settings.logo === "string") {
+        if (settings.logo.startsWith("data:image/jpeg")) format = "JPEG";
+        else if (settings.logo.startsWith("data:image/webp")) format = "WEBP";
+        else if (settings.logo.startsWith("data:image/png")) format = "PNG";
+      }
       doc.addImage(settings.logo, format, 20, 10, 35, 18, undefined, 'FAST');
       headerY = 35;
     } catch (e) {
-      console.error("PDF Invoice: Error adding logo:", e);
-      // Last resort fallback
       headerY = 20;
     }
-  } else {
-    console.warn("PDF Invoice: No logo provided in settings");
-    headerY = 20;
   }
 
   doc.setFontSize(22);
@@ -56,7 +47,6 @@ export const generateOrderInvoice = (order, settings) => {
   if (storePhone) { doc.text(`Tel: ${storePhone}`, 20, headerY); headerY += 5; }
   if (storeEmail) { doc.text(`Email: ${storeEmail}`, 20, headerY); headerY += 5; }
 
-  // INVOICE DETAILS (Right)
   doc.setFontSize(12);
   doc.setTextColor(...textColor);
   doc.setFont("helvetica", "bold");
@@ -67,10 +57,28 @@ export const generateOrderInvoice = (order, settings) => {
   doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 140, 31);
   doc.text(`Estado: ${order.paymentMethod === "cashOnDelivery" ? "Pago contra entrega" : "Pendiente"}`, 140, 36);
 
+  const baseUrl = (origin || "https://dalseshop.web.app").replace(/\/+$/, "");
+  const qrUrl = `${baseUrl}/facturacion/detalle?orderId=${order.id || ""}`;
+
+  try {
+    const QRCode = (await import("qrcode")).default;
+    const qrDataUrl = await QRCode.toDataURL(qrUrl, {
+      width: 150,
+      margin: 1,
+      color: { dark: "#2D3436", light: "#FFFFFF" },
+    });
+    doc.addImage(qrDataUrl, "PNG", 87, 12, 30, 30);
+    doc.setFontSize(7);
+    doc.setTextColor(...mutedColor);
+    doc.setFont("helvetica", "normal");
+    doc.text("Escanea para ver tu factura en linea", 87, 45, { maxWidth: 35, align: "center" });
+  } catch (e) {
+    console.warn("QR could not be generated:", e);
+  }
+
   doc.setDrawColor(200);
   doc.line(20, 50, 190, 50);
 
-  // CUSTOMER INFO
   doc.setFontSize(12);
   doc.setFont("helvetica", "bold");
   doc.text("DATOS DEL CLIENTE", 20, 60);
@@ -92,7 +100,6 @@ export const generateOrderInvoice = (order, settings) => {
     doc.text(`Giro: ${order.invoice.businessType}`, 120, 83);
   }
 
-  // ITEMS TABLE
   const tableData = (order.items || []).map(item => [
     item.barcode || item.sku || "-",
     item.name + (item.variant ? ` (${item.variant})` : ""),
@@ -111,7 +118,6 @@ export const generateOrderInvoice = (order, settings) => {
     theme: "striped"
   });
 
-  // TOTALS
   const finalY = doc.lastAutoTable.finalY + 10;
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
@@ -134,7 +140,6 @@ export const generateOrderInvoice = (order, settings) => {
   doc.text("TOTAL:", 140, finalY + 18);
   doc.text(`$${order.total.toLocaleString()}`, 170, finalY + 18);
 
-  // FOOTER
   doc.setFontSize(10);
   doc.setTextColor(...mutedColor);
   doc.setFont("helvetica", "italic");

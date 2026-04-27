@@ -190,7 +190,8 @@ export default function CheckoutPage() {
           }
 
           const { generateOrderInvoice } = await import("@/lib/invoice");
-          const doc = generateOrderInvoice({ ...orderData, id }, { ...settings, logo: logoBase64 });
+          const origin = window.location.origin;
+          const doc = await generateOrderInvoice({ ...orderData, id }, { ...settings, logo: logoBase64 }, origin);
           pdfBase64 = doc.output("datauristring").split(",")[1];
         } catch (pdfErr) {
           console.error("Error al generar PDF de factura:", pdfErr);

@@ -106,7 +106,10 @@ export default function StoreHeader() {
             <Link href="/productos" className={styles.navLink} onClick={() => setMenuOpen(false)}>
                Catálogo
             </Link>
-            {menuItems.filter(i => i.href !== '/' && i.href !== '/productos' && i.href !== '/contacto' && i.href !== '/mis-pedidos').map((item, i) => (
+            <Link href="/facturacion" className={styles.navLink} onClick={() => setMenuOpen(false)}>
+               Facturación
+            </Link>
+            {menuItems.filter(i => i.href !== '/' && i.href !== '/productos' && i.href !== '/contacto' && i.href !== '/mis-pedidos' && i.href !== '/facturacion').map((item, i) => (
               <Link
                 key={i}
                 href={item.href}
