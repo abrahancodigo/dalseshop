@@ -1,0 +1,116 @@
+.actionBar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1.25rem;
+}
+
+.pagesList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.pageCard {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: 14px;
+  transition: all var(--transition-fast);
+}
+
+.pageCard:hover {
+  border-color: var(--admin-accent);
+}
+
+.pageInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.pageIconWrapper {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--admin-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  color: var(--admin-text-muted);
+  flex-shrink: 0;
+}
+
+.pageTitle {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--admin-text);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.homeBadge {
+  padding: 0.1rem 0.4rem;
+  background: rgba(253, 203, 110, 0.15);
+  color: #FDCB6E;
+  font-size: 0.65rem;
+  font-weight: 600;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.pageMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.pageSlug {
+  font-size: 0.75rem;
+  color: var(--admin-accent);
+  font-family: monospace;
+}
+
+.pageSections {
+  font-size: 0.75rem;
+  color: var(--admin-text-muted);
+}
+
+.pageStatus {
+  flex-shrink: 0;
+}
+
+.pageActions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.deleteConfirm {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+@media (max-width: 640px) {
+  .pageCard {
+    flex-wrap: wrap;
+  }
+
+  .pageStatus {
+    order: 3;
+  }
+
+  .pageActions {
+    order: 4;
+    margin-left: auto;
+  }
+}

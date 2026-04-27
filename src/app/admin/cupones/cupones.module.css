@@ -1,0 +1,22 @@
+.actionBar { display: flex; justify-content: flex-end; margin-bottom: 1.25rem; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
+.card { background: var(--admin-surface); border: 1px solid var(--admin-border); border-radius: 14px; padding: 1.25rem; transition: all var(--transition-fast); }
+.card:hover { border-color: var(--admin-accent); }
+.card.inactive { opacity: 0.6; }
+.cardTop { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
+.couponCode { font-family: monospace; font-size: 1.25rem; font-weight: 800; color: var(--admin-accent); letter-spacing: 0.1em; }
+.inactiveBadge { padding: 0.15rem 0.5rem; background: rgba(239,68,68,0.15); color: var(--color-danger); font-size: 0.7rem; font-weight: 600; border-radius: 4px; }
+.couponValue { font-size: 2rem; font-weight: 900; color: var(--admin-text); line-height: 1; margin-bottom: 0.5rem; }
+.couponType { display: block; font-size: 0.75rem; font-weight: 500; color: var(--admin-text-muted); margin-top: 0.125rem; }
+.couponDesc { font-size: 0.8125rem; color: var(--admin-text-muted); margin-bottom: 0.75rem; }
+.couponMeta { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--admin-text-muted); margin-bottom: 0.25rem; }
+.couponMin { font-size: 0.75rem; color: var(--admin-accent); }
+.cardActions { display: flex; align-items: center; justify-content: space-between; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--admin-border); }
+.deleteConfirm { display: flex; gap: 0.25rem; }
+.modalOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 200; padding: 1rem; }
+.modal { background: var(--admin-surface); border: 1px solid var(--admin-border); border-radius: 20px; width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; animation: slideUp 0.3s ease; }
+@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.modalHeader { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--admin-border); }
+.modalTitle { font-size: 1.125rem; font-weight: 700; color: var(--admin-text); }
+.modalBody { padding: 1.5rem; }
+.modalFooter { display: flex; justify-content: flex-end; gap: 0.75rem; padding: 1rem 1.5rem; border-top: 1px solid var(--admin-border); }

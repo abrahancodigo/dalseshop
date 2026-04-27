@@ -1,0 +1,364 @@
+.header {
+  background: var(--color-secondary);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 68px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+}
+
+.logo {
+  height: 42px;
+  width: auto;
+  max-width: 180px;
+  object-fit: contain;
+}
+
+.logoPlaceholder {
+  height: 38px;
+  width: 38px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary-text, white);
+  font-weight: 800;
+  font-size: 0.85rem;
+}
+
+.brandName {
+  font-weight: 700;
+  font-size: 1.125rem;
+  color: var(--color-header-text);
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+}
+
+.navLinks {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.navLink {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-header-text);
+  transition: color var(--transition-fast);
+  text-decoration: none;
+}
+
+.navLink:hover {
+  color: var(--color-primary);
+}
+
+.closeBtn,
+.mobileDrawerHeader,
+.mobileAuth {
+  display: none;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cartBtn {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-header-text);
+  font-size: 1.25rem;
+  background: color-mix(in srgb, var(--color-header-text) 15%, transparent);
+  border: 1.5px solid var(--color-header-text);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.cartBtn:hover {
+  background: rgba(255,255,255,0.15);
+}
+
+.cartBadge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: var(--color-primary-text, white);
+  font-size: 0.7rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.menuBtn {
+  display: none;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-header-text);
+  font-size: 1.5rem;
+  background: rgba(255,255,255,0.08);
+  border: 1.5px solid var(--color-header-text);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.menuBtn:hover {
+  background: rgba(255,255,255,0.15);
+}
+
+.overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(4px);
+  z-index: 199;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Auth buttons */
+.loginBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-primary) 15%, transparent);
+  color: var(--color-primary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all var(--transition-fast);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 25%, transparent);
+}
+
+.loginBtn:hover {
+  background: var(--color-primary);
+  color: var(--color-primary-text, white);
+}
+
+.authContainer {
+  position: relative;
+}
+
+.userBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-header-text) 15%, transparent);
+  color: var(--color-header-text);
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: 1.5px solid var(--color-header-text);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.userBtn:hover {
+  background: color-mix(in srgb, var(--color-header-text) 15%, transparent);
+}
+
+.adminBadge {
+  background: var(--color-primary);
+  color: var(--color-primary-text, white);
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.authDropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 180px;
+  background: var(--color-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 0.5rem;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+  z-index: 100;
+  animation: dropdownIn 0.15s ease;
+}
+
+@keyframes dropdownIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdownItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border-radius: 8px;
+  background: none;
+  border: none;
+  color: var(--color-header-text);
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.dropdownItem:hover {
+  background: color-mix(in srgb, var(--color-header-text) 10%, transparent);
+}
+
+@media (max-width: 768px) {
+  .menuBtn {
+    display: flex;
+  }
+
+  .desktopAuth {
+    display: none;
+  }
+
+  .nav {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 85%;
+    max-width: 340px;
+    background: var(--color-secondary);
+    backdrop-filter: blur(20px);
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0;
+    gap: 0;
+    z-index: 200;
+    transform: translateX(100%);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: -10px 0 30px rgba(0,0,0,0.3);
+    overflow-y: auto;
+  }
+
+  .navOpen {
+    transform: translateX(0);
+  }
+
+  .mobileDrawerHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    margin-bottom: 1rem;
+  }
+
+  .drawerBrandName {
+    font-weight: 800;
+    font-size: 1.25rem;
+    color: var(--color-header-text);
+  }
+
+  .navLinks {
+    display: flex;
+    flex-direction: column;
+    padding: 0 1rem;
+    gap: 0.25rem;
+  }
+
+  .navLink {
+    padding: 0.875rem 1rem;
+    border-radius: 10px;
+    font-size: 1rem;
+    color: var(--color-header-text);
+  }
+
+  .navLink:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .closeBtn {
+    display: flex;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-header-text);
+    font-size: 1.5rem;
+    background: rgba(255,255,255,0.08);
+    border: none;
+    cursor: pointer;
+  }
+
+  .mobileAuth {
+    display: block;
+    margin-top: auto;
+    padding: 2rem 1.5rem;
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .overlay {
+    display: block;
+  }
+}
+
+.searchRow {
+  background: rgba(255, 255, 255, 0.12);
+  border-top: 1px solid rgba(255, 255, 255, 0.25);
+  padding: 0.75rem 0;
+}
+
+@media (max-width: 768px) {
+  .inner {
+    height: 60px;
+  }
+
+  .searchRow {
+    padding: 0.5rem 0 1rem;
+  }
+}

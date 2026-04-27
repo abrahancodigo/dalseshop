@@ -1,0 +1,15 @@
+.filterBar { display: flex; gap: 0.5rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
+.filterBtn { padding: 0.5rem 1rem; border-radius: 100px; border: 2px solid var(--admin-border); background: var(--admin-surface); color: var(--admin-text-muted); font-size: 0.8125rem; font-weight: 600; cursor: pointer; transition: all var(--transition-fast); }
+.filterBtn:hover { border-color: var(--admin-accent); }
+.filterBtn.active { background: var(--admin-accent); border-color: var(--admin-accent); color: #FFFFFF; }
+.list { display: flex; flex-direction: column; gap: 0.5rem; }
+.card { background: var(--admin-surface); border: 1px solid var(--admin-border); border-radius: 14px; padding: 1.25rem; transition: border-color var(--transition-fast); }
+.card:hover { border-color: var(--admin-accent); }
+.card.pending { border-left: 3px solid #FDCB6E; }
+.cardTop { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem; }
+.reviewerName { display: block; color: var(--admin-text); font-size: 0.9rem; }
+.stars { color: #FDCB6E; font-size: 0.875rem; }
+.date { font-size: 0.75rem; color: var(--admin-text-muted); }
+.comment { font-size: 0.875rem; color: var(--admin-text); line-height: 1.6; margin-bottom: 0.5rem; }
+.productName { font-size: 0.75rem; color: var(--admin-accent); margin-bottom: 0.75rem; }
+.actions { display: flex; gap: 0.5rem; }

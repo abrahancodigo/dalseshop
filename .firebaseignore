@@ -1,0 +1,28 @@
+# Firebase Deployment Ignore List
+# This file prevents unnecessary files from being packaged and uploaded to the Cloud Function
+
+.firebase/
+.next/cache/
+.next/dev/
+.next/trace/
+.next/diagnostics/
+node_modules/.cache/
+node_modules/
+.claude/
+.blackbox/
+scratch/
+firebase-debug.log
+public/
+src/
+*.md
+.gitignore
+.firebaserc
+firebase.json
+firestore.rules
+storage.rules
+jsconfig.json
+next.config.mjs
+package-lock.json
+README.md
+AGENTS.md
+CLAUDE.md

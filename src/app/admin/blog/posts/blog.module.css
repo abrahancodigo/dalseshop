@@ -1,0 +1,10 @@
+.actionBar { display: flex; justify-content: flex-end; margin-bottom: 1.25rem; }
+.list { display: flex; flex-direction: column; gap: 0.5rem; }
+.postCard { display: flex; align-items: center; gap: 1rem; padding: 1rem 1.25rem; background: var(--admin-surface); border: 1px solid var(--admin-border); border-radius: 14px; transition: border-color var(--transition-fast); }
+.postCard:hover { border-color: var(--admin-accent); }
+.postImage { width: 64px; height: 64px; border-radius: 10px; object-fit: cover; flex-shrink: 0; }
+.postInfo { flex: 1; min-width: 0; }
+.postTitle { font-weight: 700; color: var(--admin-text); font-size: 0.95rem; margin-bottom: 0.25rem; }
+.postMeta { display: flex; gap: 1rem; font-size: 0.75rem; color: var(--admin-text-muted); }
+.postStatus { flex-shrink: 0; }
+.postActions { display: flex; align-items: center; gap: 0.25rem; flex-shrink: 0; }
