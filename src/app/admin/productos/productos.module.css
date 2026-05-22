@@ -43,7 +43,7 @@
 
 .searchInput:focus {
   outline: none;
-  border-color: var(--admin-accent);
+  border-color: var(--admin-border);
 }
 
 /* Table */

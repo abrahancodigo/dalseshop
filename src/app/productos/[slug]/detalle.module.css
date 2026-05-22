@@ -63,17 +63,24 @@
 .images {}
 
 .mainImage {
-  border-radius: calc(var(--border-radius) + 4px);
+  border-radius: 16px;
   overflow: hidden;
   aspect-ratio: 1;
   background: var(--color-surface);
   margin-bottom: 1rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+  position: relative;
 }
 
 .mainImage img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mainImageWrapper:hover .mainImage img {
+  transform: scale(1.03);
 }
 
 .imagePlaceholder {
@@ -91,25 +98,40 @@
 }
 
 .thumbnail {
-  width: 72px;
-  height: 72px;
-  border-radius: 10px;
+  width: 76px;
+  height: 76px;
+  border-radius: 12px;
   overflow: hidden;
   border: 2px solid var(--color-border);
   cursor: pointer;
   padding: 0;
   background: none;
-  transition: border-color var(--transition-fast);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  opacity: 0.7;
 }
 
 .thumbnail img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.thumbnail:hover {
+  border-color: var(--color-primary);
+  opacity: 1;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(108,92,231,0.15);
+}
+
+.thumbnail:hover img {
+  transform: scale(1.08);
 }
 
 .thumbnailActive {
   border-color: var(--color-primary);
+  opacity: 1;
+  box-shadow: 0 0 0 3px rgba(108,92,231,0.15);
 }
 
 /* Details */
@@ -124,6 +146,10 @@
   letter-spacing: -0.03em;
   margin-bottom: 0.5rem;
   line-height: 1.1;
+  background: linear-gradient(135deg, var(--color-text), var(--color-primary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .priceBlock {
@@ -145,6 +171,13 @@
   color: var(--color-muted);
   text-decoration: line-through;
   opacity: 0.7;
+}
+
+.consultPrice {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  font-style: italic;
 }
 
 .discountBadge {
@@ -203,6 +236,23 @@
   background: var(--color-surface);
 }
 
+.quantityControl .quantityInput {
+  width: 60px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--color-text);
+  border: none;
+  background: transparent;
+  -moz-appearance: textfield;
+}
+
+.quantityControl .quantityInput::-webkit-outer-spin-button,
+.quantityControl .quantityInput::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 .quantityControl span {
   width: 48px;
   text-align: center;
@@ -219,21 +269,24 @@
   gap: 0.75rem;
   padding: 0 2rem;
   height: 56px;
-  background: var(--color-primary);
+  background: linear-gradient(135deg, var(--color-primary), #8B7CF7);
   color: white;
   border: none;
-  border-radius: var(--border-radius);
+  border-radius: 14px;
   font-size: 1.05rem;
   font-weight: 800;
   cursor: pointer;
-  transition: all var(--transition-fast);
-  box-shadow: var(--shadow-md);
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 8px 25px rgba(108,92,231,0.3);
 }
 
 .addBtn:hover {
-  opacity: 0.95;
-  transform: translateY(-2px);
-  box-shadow: 0 10px 25px color-mix(in srgb, var(--color-primary) 30%, transparent);
+  transform: translateY(-3px);
+  box-shadow: 0 14px 35px rgba(108,92,231,0.4);
+}
+
+.addBtn:active {
+  transform: translateY(0);
 }
 
 .tags {
@@ -257,10 +310,11 @@
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 1rem;
   padding: 1.5rem;
-  background: var(--color-surface);
-  border-radius: var(--border-radius);
+  background: linear-gradient(135deg, var(--color-surface), white);
+  border-radius: 16px;
   border: 1px solid var(--color-border);
   margin-top: 2rem;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
 }
 
 .metaItem {
@@ -302,6 +356,32 @@
 
   .addToCart {
     flex-direction: column;
+  }
+
+  .addToCart .quantityControl {
+    width: 100%;
+    justify-content: center;
+    height: 52px;
+    border-radius: 12px;
+  }
+
+  .addToCart .quantityControl button {
+    width: 52px;
+    height: 52px;
+    font-size: 1.2rem;
+  }
+
+  .addToCart .quantityControl .quantityInput {
+    width: 80px;
+    font-size: 1.15rem;
+  }
+
+  .addBtn {
+    width: 100%;
+    height: 280px;
+    font-size: 1.5rem;
+    border-radius: 18px;
+    letter-spacing: 0.02em;
   }
 }
 
@@ -502,5 +582,12 @@
 @media (min-width: 1200px) {
   .relatedGrid {
     grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .relatedGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
   }
 }

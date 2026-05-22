@@ -1,28 +1,49 @@
-# Firebase Deployment Ignore List
-# This file prevents unnecessary files from being packaged and uploaded to the Cloud Function
+# Build & cache
+.next
+.firebase
+node_modules
 
-.firebase/
-.next/cache/
-.next/dev/
-.next/trace/
-.next/diagnostics/
-node_modules/.cache/
-node_modules/
-.claude/
-.blackbox/
-scratch/
-firebase-debug.log
-public/
-src/
-*.md
-.gitignore
+# Config files (Firebase rebuilds in cloud)
 .firebaserc
 firebase.json
+firebase-debug.log
 firestore.rules
 storage.rules
-jsconfig.json
-next.config.mjs
+
+# Source code (Firebase rebuilds from source)
+src
+
+# Dev tools & IDE
+.cursorrules
+.editorconfig
+.eslint*
+.gitignore
+.git
+.blackbox
+.claude
+.kilo
+.vscode
+
+# Docs
+*.md
+
+# Lock files
 package-lock.json
-README.md
-AGENTS.md
-CLAUDE.md
+yarn.lock
+pnpm-lock.yaml
+
+# Config files not needed in deploy
+tsconfig*
+jsconfig*
+
+# Env & secrets
+.env*
+
+# Scratch & temp
+scratch
+
+# Logs
+*.log
+
+# Source maps
+**/*.map

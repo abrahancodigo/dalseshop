@@ -71,7 +71,7 @@
   justify-content: center;
   background-color: var(--color-background);
   overflow: hidden;
-  padding: 4rem 0;
+  padding: 2rem 0 5rem;
 }
 
 .coverflowContainer {
@@ -199,47 +199,149 @@
 
 .heroCounter {
   position: absolute;
-  bottom: 0;
+  bottom: 4rem;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--color-muted);
-  background: rgba(255,255,255,0.8);
-  padding: 0.25rem 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: white;
+  background: rgba(0,0,0,0.4);
+  padding: 0.25rem 0.85rem;
   border-radius: 20px;
   z-index: 20;
+  backdrop-filter: blur(6px);
 }
 
-.heroDots {
+.heroThumbs {
   position: absolute;
-  bottom: -2rem;
+  bottom: 1rem;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   gap: 0.5rem;
+  z-index: 20;
 }
 
-.heroDot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  border: none;
-  background: #ccc;
+.heroThumb {
+  border: 2px solid rgba(255,255,255,0.4);
+  border-radius: 8px;
+  overflow: hidden;
+  width: 70px;
+  height: 44px;
   cursor: pointer;
+  background: none;
+  padding: 0;
   transition: all 0.3s ease;
+  opacity: 0.7;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 
-.heroDotActive {
-  background: var(--color-primary);
-  width: 20px;
-  border-radius: 4px;
+.heroThumb:hover {
+  opacity: 0.9;
+  transform: translateY(-2px);
+  border-color: rgba(255,255,255,0.8);
+}
+
+.heroThumbActive {
+  border-color: white;
+  opacity: 1;
+  box-shadow: 0 0 0 2px var(--color-primary, #4F46E5), 0 4px 12px rgba(0,0,0,0.3);
+  transform: translateY(-3px);
+}
+
+.heroThumbImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 @media (max-width: 768px) {
   .heroSlide { width: 90%; }
   .heroTitle { font-size: 1.75rem; }
   .coverflowContainer { height: 350px; }
+  .heroThumb { width: 52px; height: 34px; }
+  .heroThumbs { gap: 0.35rem; }
+  .heroCounter { bottom: 3.5rem; font-size: 0.75rem; padding: 0.2rem 0.65rem; }
+}
+
+/* ============================================================
+   HERO MODAL — Full Image Viewer
+   ============================================================ */
+.heroModalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: heroModalFadeIn 0.2s ease;
+  cursor: pointer;
+}
+
+.heroModalContent {
+  position: relative;
+  max-width: 95vw;
+  max-height: 95vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.heroModalImage {
+  max-width: 95vw;
+  max-height: 95vh;
+  object-fit: contain;
+  border-radius: 8px;
+  cursor: pointer;
+  animation: heroModalZoomIn 0.3s ease;
+}
+
+.heroModalClose {
+  position: absolute;
+  top: -48px;
+  right: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.heroModalClose:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+@keyframes heroModalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes heroModalZoomIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@media (max-width: 768px) {
+  .heroModalClose {
+    top: -44px;
+    right: -4px;
+  }
+  .heroModalImage {
+    max-width: 100vw;
+    max-height: 100vh;
+    border-radius: 0;
+  }
 }
 
 
@@ -257,6 +359,33 @@
 
 @media (max-width: 480px) {
   .productGrid { grid-template-columns: repeat(2, 1fr) !important; gap: 0.75rem; }
+}
+
+/* ─── Grid Footer (Ver todos) ─── */
+.gridFooter {
+  display: flex;
+  justify-content: center;
+  margin-top: 2rem;
+}
+
+.gridFooterBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.75rem;
+  border-radius: var(--border-radius);
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #fff;
+  background: #EF4444;
+  text-decoration: none;
+  transition: all var(--transition-fast);
+}
+
+.gridFooterBtn:hover {
+  background: #DC2626;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 /* ============================================================
@@ -520,6 +649,20 @@
 .separatorDots {
   color: var(--color-muted);
   letter-spacing: 0.5em;
+}
+
+/* ============================================================
+   FULL WIDTH IMAGE
+   ============================================================ */
+.fullWidthImage {
+  width: 100%;
+  overflow: hidden;
+  line-height: 0;
+}
+
+.fullWidthImage img {
+  width: 100%;
+  display: block;
 }
 
 /* ============================================================

@@ -1,7 +1,7 @@
 .searchBar { position: relative; max-width: 400px; margin-bottom: 1.25rem; }
 .searchIcon { position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--admin-text-muted); }
 .searchInput { width: 100%; padding: 0.625rem 0.875rem 0.625rem 2.25rem; border: 2px solid var(--admin-border); border-radius: var(--border-radius); background: var(--admin-bg); color: var(--admin-text); font-size: 0.875rem; }
-.searchInput:focus { outline: none; border-color: var(--admin-accent); }
+.searchInput:focus { outline: none; border-color: var(--admin-border); }
 .table { background: var(--admin-surface); border: 1px solid var(--admin-border); border-radius: 14px; overflow: hidden; }
 .tableHeader { display: flex; padding: 0.75rem 1.25rem; background: var(--admin-bg); border-bottom: 1px solid var(--admin-border); font-size: 0.75rem; font-weight: 600; color: var(--admin-text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
 .tableRow { display: flex; align-items: center; padding: 0.875rem 1.25rem; border-bottom: 1px solid var(--admin-border); cursor: pointer; transition: background var(--transition-fast); }

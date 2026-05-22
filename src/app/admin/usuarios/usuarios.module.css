@@ -1,0 +1,359 @@
+.actionBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.searchBox {
+  position: relative;
+  flex: 1;
+  max-width: 420px;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--admin-text-muted);
+  font-size: 1rem;
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 0.55rem 2.2rem 0.55rem 2.4rem;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  color: var(--admin-text);
+  font-size: 0.85rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.searchInput:focus {
+  border-color: var(--admin-border);
+}
+
+.clearSearchBtn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--admin-text-muted);
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+}
+
+.clearSearchBtn:hover {
+  color: var(--admin-text);
+}
+
+.searchResultInfo {
+  font-size: 0.78rem;
+  color: var(--admin-text-muted);
+  margin-bottom: 0.75rem;
+}
+
+.actionHint {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--admin-text-muted);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1rem;
+}
+
+.card {
+  background: var(--admin-card-bg);
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: border-color 0.2s;
+}
+
+.card:hover {
+  border-color: var(--admin-accent);
+}
+
+.card.inactive {
+  opacity: 0.6;
+}
+
+.card.noRole {
+  border-color: var(--admin-border);
+  border-style: dashed;
+}
+
+.cardTop {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.userAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--admin-surface);
+}
+
+.avatarImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatarIcon {
+  width: 32px;
+  height: 32px;
+  color: var(--admin-text-muted);
+}
+
+.userInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.userName {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--admin-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.userEmail {
+  font-size: 0.78rem;
+  color: var(--admin-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.inactiveBadge {
+  font-size: 0.7rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 99px;
+  background: var(--color-danger);
+  color: white;
+  white-space: nowrap;
+}
+
+.roleBadge {
+  align-self: flex-start;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.7rem;
+  border-radius: 99px;
+  font-weight: 600;
+  background: var(--admin-surface);
+  color: var(--admin-text-muted);
+}
+
+.roleBadge[data-role="superadmin"] {
+  background: #6C5CE7;
+  color: white;
+}
+
+.roleBadge[data-role="admin"] {
+  background: #0984E3;
+  color: white;
+}
+
+.roleBadge[data-role="manager"] {
+  background: #00B894;
+  color: white;
+}
+
+.roleBadge[data-role="editor"] {
+  background: #FDCB6E;
+  color: #2D3436;
+}
+
+.roleBadge[data-role="viewer"] {
+  background: #636E72;
+  color: white;
+}
+
+.roleBadge[data-role="none"] {
+  background: #2D3436;
+  color: #636E72;
+  border: 1px dashed #636E72;
+}
+
+.customHint {
+  font-size: 0.7rem;
+  color: #FDCB6E;
+  font-style: italic;
+}
+
+.cardActions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: auto;
+}
+
+.deleteConfirm {
+  display: flex;
+  gap: 0.3rem;
+}
+
+/* Modal */
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 2rem;
+  overflow-y: auto;
+}
+
+.modal {
+  background: var(--admin-card-bg);
+  border: 1px solid var(--admin-border);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 640px;
+  margin-top: 2rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.modalTitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.modalBody {
+  padding: 1.5rem;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.modalFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--admin-border);
+}
+
+.formError {
+  background: rgba(225, 112, 85, 0.15);
+  color: var(--color-danger);
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.permissionsSection {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--admin-border);
+}
+
+.permissionsTitle {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.permissionsHint {
+  font-weight: 400;
+  font-size: 0.75rem;
+  color: var(--admin-text-muted);
+}
+
+.permissionsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.4rem;
+}
+
+.permItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.3rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  background: var(--admin-surface);
+}
+
+.permItem.permCustom {
+  background: rgba(108, 92, 231, 0.12);
+  border: 1px solid rgba(108, 92, 231, 0.3);
+}
+
+.permLabel {
+  color: var(--admin-text);
+}
+
+.permControls {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.permValue {
+  width: 20px;
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.permBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.75rem;
+  padding: 2px 4px;
+  border-radius: 4px;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+
+.permBtn:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.05);
+}

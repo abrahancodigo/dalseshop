@@ -1,0 +1,351 @@
+/* ============================================================
+   CONTROL DE ASISTENCIA & PLANILLA
+   ============================================================ */
+*:focus-visible{outline:2px solid #4F46E5;outline-offset:2px;z-index:1}
+
+/* LAYOUT */
+.layout{display:flex;min-height:calc(100vh - 68px);background:#F0F2F5}
+
+/* SIDEBAR */
+.sidebar{width:220px;background:linear-gradient(180deg,#0F172A 0%,#1E293B 100%);display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:68px;height:calc(100vh - 68px);overflow-y:auto;z-index:10;border-right:1px solid rgba(255,255,255,0.04)}
+.sidebarHeader{padding:1.25rem 1.15rem 0.85rem;border-bottom:1px solid rgba(255,255,255,0.06)}
+.sidebarTitle{font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#64748B;margin-bottom:0.15rem}
+.sidebarSubtitle{font-size:0.82rem;font-weight:700;color:#CBD5E1}
+.sidebarNav{padding:0.5rem 0.6rem;flex:1;display:flex;flex-direction:column;gap:2px}
+.sidebarLink{display:flex;align-items:center;gap:0.65rem;padding:0.6rem 0.85rem;border-radius:7px;font-size:0.85rem;font-weight:500;color:#94A3B8;cursor:pointer;transition:all 0.12s;border:none;background:transparent;width:100%;text-align:left}
+.sidebarLink:hover{background:rgba(255,255,255,0.06);color:#CBD5E1}
+.sidebarLinkActive{background:#4F46E5;color:white;font-weight:600}
+.sidebarLinkActive:hover{background:#4338CA;color:white}
+.sidebarLinkIcon{font-size:1.1rem;flex-shrink:0;width:20px;display:flex;align-items:center;justify-content:center}
+.sidebarLinkBadge{margin-left:auto;background:rgba(255,255,255,0.12);padding:0.08rem 0.4rem;border-radius:99px;font-size:0.62rem;font-weight:700;color:#94A3B8}
+.sidebarLinkActive .sidebarLinkBadge{background:rgba(255,255,255,0.2);color:white}
+.sidebarDivider{height:1px;background:rgba(255,255,255,0.06);margin:0.5rem 0.75rem}
+
+/* MAIN */
+.mainContent{flex:1;min-width:0;display:flex;flex-direction:column}
+
+/* TOPBAR */
+.topBar{background:white;border-bottom:1px solid #CBD5E1;padding:0.65rem 1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;position:sticky;top:68px;z-index:9;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
+.topBarLeft{display:flex;align-items:center;gap:0.65rem;flex:1}
+.topBarRight{display:flex;align-items:center;gap:0.5rem}
+.searchBox{position:relative;flex:1;max-width:360px}
+.searchIcon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:#475569;font-size:0.95rem;pointer-events:none}
+.searchInput{width:100%;padding:0.55rem 0.9rem 0.55rem 2.3rem;background:#F8FAFC;border:1.5px solid #CBD5E1;border-radius:7px;color:#0F172A;font-size:0.85rem;font-weight:500;outline:none;transition:all 0.15s}
+.searchInput:focus{border-color:#4F46E5;background:white}
+.searchInput::placeholder{color:#94A3B8}
+.filterSelect{padding:0.5rem 1.8rem 0.5rem 0.8rem;background:#F8FAFC;border:1.5px solid #CBD5E1;border-radius:7px;color:#0F172A;font-size:0.82rem;font-weight:500;outline:none;cursor:pointer;transition:all 0.15s;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 0.6rem center}
+.filterSelect:focus{border-color:#4F46E5;box-shadow:0 0 0 2px rgba(79,70,229,0.1)}
+
+/* BUTTONS */
+.btnPrimary{display:inline-flex;align-items:center;gap:0.4rem;padding:0.55rem 1.05rem;background:#4F46E5;border:1.5px solid #4338CA;border-radius:7px;color:white;font-size:0.85rem;font-weight:600;cursor:pointer;transition:all 0.12s;white-space:nowrap}
+.btnPrimary:hover{background:#4338CA;box-shadow:0 2px 6px rgba(67,56,202,0.3)}
+.btnPrimary:disabled{opacity:0.5;cursor:not-allowed}
+.btnOutline{display:inline-flex;align-items:center;gap:0.4rem;padding:0.55rem 1.05rem;background:white;border:1.5px solid #CBD5E1;border-radius:7px;color:#475569;font-size:0.85rem;font-weight:600;cursor:pointer;transition:all 0.12s;white-space:nowrap}
+.btnOutline:hover{background:#F8FAFC;border-color:#4F46E5;color:#4F46E5}
+.btnOutline:disabled{opacity:0.4;cursor:not-allowed}
+.btnDanger{display:inline-flex;align-items:center;gap:0.4rem;padding:0.55rem 1.05rem;background:#DC2626;border:1.5px solid #B91C1C;border-radius:7px;color:white;font-size:0.85rem;font-weight:600;cursor:pointer;transition:all 0.12s}
+.btnDanger:hover{background:#B91C1C}
+.btnGhost{display:inline-flex;align-items:center;gap:0.4rem;padding:0.55rem 1.05rem;background:transparent;border:1.5px solid transparent;border-radius:7px;color:#1E293B;font-size:0.85rem;font-weight:600;cursor:pointer;transition:all 0.12s}
+.btnGhost:hover{background:#E2E8F0;color:#0F172A}
+.btnSm{padding:0.4rem 0.8rem;font-size:0.78rem}
+.btnSuccess{display:inline-flex;align-items:center;gap:0.4rem;padding:0.55rem 1.05rem;background:#059669;border:1.5px solid #047857;border-radius:7px;color:white;font-size:0.85rem;font-weight:600;cursor:pointer;transition:all 0.12s}
+.btnSuccess:hover{background:#047857}
+
+/* CONTENT */
+.contentArea{padding:0.65rem 1.5rem 1.15rem;flex:1}
+
+/* KPI */
+.kpiStrip{display:grid;grid-template-columns:repeat(4,1fr);gap:0.75rem;margin-bottom:1rem}
+.kpiCard{background:white;border:1px solid #CBD5E1;border-radius:8px;padding:0.85rem 1rem;display:flex;align-items:center;gap:0.85rem;transition:all 0.15s;position:relative;overflow:hidden;cursor:pointer}
+.kpiCard::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--kpi-color,#4F46E5)}
+.kpiCard:hover{box-shadow:0 2px 8px rgba(0,0,0,0.08);border-color:var(--kpi-color,#4F46E5)}
+.kpiIcon{width:38px;height:38px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.15rem;background:var(--kpi-bg,rgba(79,70,229,0.08));color:var(--kpi-color,#4F46E5);flex-shrink:0}
+.kpiContent{flex:1}
+.kpiValue{font-size:1.5rem;font-weight:800;color:#0F172A;line-height:1;letter-spacing:-0.02em}
+.kpiLabel{font-size:0.7rem;color:#1E293B;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;margin-top:0.15rem}
+
+/* BULK SELECTION BAR */
+.bulkBar{display:flex;align-items:center;gap:0.65rem;padding:0.55rem 1rem;background:#EEF2FF;border-bottom:1px solid #C7D2FE}
+.bulkBarCount{font-size:0.78rem;font-weight:700;color:#4338CA;white-space:nowrap}
+.rowSelected{background:#EEF2FF!important}
+.checkAll{cursor:pointer}
+
+/* SECTION CARD */
+.sectionCard{background:white;border:1px solid #CBD5E1;border-radius:8px;overflow:hidden;margin-bottom:1rem}
+.sectionHeader{display:flex;align-items:center;justify-content:space-between;padding:0.65rem 1rem;background:#F8FAFC;border-bottom:1px solid #CBD5E1;flex-wrap:wrap;gap:0.5rem}
+.sectionTitle{font-size:0.85rem;font-weight:700;color:#0F172A;display:flex;align-items:center;gap:0.5rem}
+.sectionBadge{background:#CBD5E1;padding:0.1rem 0.5rem;border-radius:99px;font-size:0.62rem;font-weight:700;color:#475569}
+.sectionActions{display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap}
+.sectionBody{padding:1rem}
+
+/* TABLE */
+.tableWrap{overflow-x:auto}
+.table{width:100%;border-collapse:collapse;font-size:0.85rem}
+.table thead{position:sticky;top:0;z-index:2}
+.table th{background:#E2E8F0;padding:0.55rem 0.9rem;text-align:left;font-size:0.72rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.06em;border-bottom:2px solid #CBD5E1;white-space:nowrap;user-select:none}
+.table th.textRight{text-align:right}
+.table th.textCenter{text-align:center}
+.table td{padding:0.6rem 0.9rem;border-bottom:1px solid #E2E8F0;color:#0F172A;vertical-align:middle}
+.table td.textRight{text-align:right}
+.table td.textCenter{text-align:center}
+.table tbody tr{transition:background 0.1s}
+.table tbody tr:nth-child(even){background:#FAFBFC}
+.table tbody tr:hover{background:#EEF2FF}
+.table tbody tr:last-child td{border-bottom:none}
+
+/* STATUS BADGES */
+.badge{display:inline-flex;align-items:center;gap:0.3rem;padding:0.22rem 0.6rem;border-radius:99px;font-size:0.73rem;font-weight:700;border:1px solid transparent;white-space:nowrap}
+.badgeDot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.bPresent{background:#D1FAE5;color:#065F46;border-color:#A7F3D0}.bPresent .badgeDot{background:#059669}
+.bAbsent{background:#FEE2E2;color:#991B1B;border-color:#FECACA}.bAbsent .badgeDot{background:#DC2626}
+.bCross{background:#EEF2FF;color:#4338CA;border-color:#C7D2FE}.bCross .badgeDot{background:#6366F1}
+.bLate{background:#FEF3C7;color:#92400E;border-color:#FDE68A}.bLate .badgeDot{background:#D97706}
+.bVacation{background:#DBEAFE;color:#1E40AF;border-color:#BFDBFE}.bVacation .badgeDot{background:#3B82F6}
+.bSick{background:#FFEDD5;color:#9A3412;border-color:#FED7AA}.bSick .badgeDot{background:#EA580C}
+.bPermission{background:#EDE9FE;color:#5B21B6;border-color:#DDD6FE}.bPermission .badgeDot{background:#7C3AED}
+.bHoliday{background:#E0E7FF;color:#3730A3;border-color:#C7D2FE}.bHoliday .badgeDot{background:#4F46E5}
+.bHalfDay{background:#FEF9C3;color:#854D0E;border-color:#FEF08A}.bHalfDay .badgeDot{background:#CA8A04}
+.bActive{background:#D1FAE5;color:#065F46;border-color:#A7F3D0}
+.bInactive{background:#F1F5F9;color:#64748B;border-color:#CBD5E1}
+.bDraft{background:#F1F5F9;color:#475569;border-color:#CBD5E1}
+.bCalculated{background:#DBEAFE;color:#1E40AF;border-color:#BFDBFE}
+.bApproved{background:#FEF3C7;color:#92400E;border-color:#FDE68A}
+.bPaid{background:#D1FAE5;color:#065F46;border-color:#A7F3D0}
+
+/* ACTION BUTTONS */
+.actionBtn{width:32px;height:32px;border:1.5px solid #CBD5E1;background:white;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.95rem;transition:all 0.1s}
+.actionBtnEdit{color:#4F46E5}.actionBtnEdit:hover{background:#EEF2FF;border-color:#4F46E5}
+.actionBtnDel{color:#DC2626}.actionBtnDel:hover{background:#FEF2F2;border-color:#DC2626}
+.actionBtnView{color:#059669}.actionBtnView:hover{background:#ECFDF5;border-color:#059669}
+.toolBtn{display:inline-flex;align-items:center;gap:0.35rem;padding:0.45rem 0.75rem;border:1.5px solid #CBD5E1;background:white;border-radius:7px;cursor:pointer;font-size:0.78rem;font-weight:600;color:#475569;transition:all 0.12s;white-space:nowrap}
+.toolBtn:hover{background:#F8FAFC;border-color:#4F46E5;color:#4F46E5}
+.toolBtn svg{font-size:0.95rem}
+
+/* TOAST */
+.toast{background:#059669;color:white;padding:0.5rem 0.9rem;border-radius:7px;font-size:0.78rem;font-weight:600;margin-bottom:0.85rem;display:inline-flex;align-items:center;gap:0.45rem;box-shadow:0 2px 8px rgba(5,150,105,0.25);animation:toastIn 0.2s ease}
+.toastError{background:#DC2626;box-shadow:0 2px 8px rgba(220,38,38,0.25)}
+@keyframes toastIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+
+/* EMPTY STATE */
+.emptyState{display:flex;flex-direction:column;align-items:center;gap:0.5rem;padding:2rem 0;color:#475569;text-align:center}
+.emptyState p{font-size:0.82rem;font-weight:500}
+
+/* MODAL */
+.modalOverlay{position:fixed;inset:0;background:rgba(15,23,42,0.5);display:flex;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(4px);animation:fadeIn 0.15s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal{background:white;border-radius:12px;width:95%;max-width:600px;max-height:90vh;overflow-y:auto;box-shadow:0 25px 50px rgba(0,0,0,0.25);animation:slideUp 0.2s ease}
+.modalLg{max-width:800px}
+@keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.modalHeader{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;border-bottom:1px solid #E2E8F0}
+.modalTitle{font-size:1rem;font-weight:700;color:#0F172A;display:flex;align-items:center;gap:0.5rem}
+.modalClose{width:32px;height:32px;border:none;background:#F1F5F9;border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#64748B;font-size:1.1rem;transition:all 0.1s}
+.modalClose:hover{background:#E2E8F0;color:#0F172A}
+.modalBody{padding:1.25rem}
+.modalFooter{display:flex;align-items:center;justify-content:flex-end;gap:0.5rem;padding:1rem 1.25rem;border-top:1px solid #E2E8F0;background:#F8FAFC;border-radius:0 0 12px 12px}
+
+/* FORM */
+.formGrid{display:grid;grid-template-columns:1fr 1fr;gap:0.85rem}
+.formGroup{display:flex;flex-direction:column;gap:0.3rem}
+.formGroupFull{grid-column:1/-1}
+.formLabel{font-size:0.75rem;font-weight:600;color:#475569;text-transform:uppercase;letter-spacing:0.04em}
+.formInput{padding:0.55rem 0.85rem;border:1.5px solid #CBD5E1;border-radius:7px;font-size:0.85rem;color:#0F172A;outline:none;transition:all 0.15s;background:#F8FAFC}
+.formInput:focus{border-color:#4F46E5;box-shadow:0 0 0 2px rgba(79,70,229,0.1);background:white}
+.formInput::placeholder{color:#94A3B8}
+.formSelect{padding:0.55rem 0.85rem;border:1.5px solid #CBD5E1;border-radius:7px;font-size:0.85rem;color:#0F172A;outline:none;background:#F8FAFC;cursor:pointer}
+.formSelect:focus{border-color:#4F46E5}
+.formTextarea{padding:0.55rem 0.85rem;border:1.5px solid #CBD5E1;border-radius:7px;font-size:0.85rem;color:#0F172A;outline:none;background:#F8FAFC;resize:vertical;min-height:70px}
+.formTextarea:focus{border-color:#4F46E5}
+
+/* INLINE CREATE (department/position) */
+.inlineSelect{display:flex;gap:4px;align-items:stretch}
+.inlineSelect .formSelect{flex:1}
+.inlineToggle{width:34px;border:1.5px solid #CBD5E1;border-radius:7px;background:#F8FAFC;color:#4F46E5;font-size:1.2rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.12s;line-height:1}
+.inlineToggle:hover{background:#EEF2FF;border-color:#4F46E5}
+.inlineCreate{display:flex;gap:4px;margin-top:6px}
+.inlineCreate .formInput{flex:1}
+
+/* DATE SELECTOR */
+.dateSelector{display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap}
+.dateInput{padding:0.5rem 0.8rem;border:1.5px solid #CBD5E1;border-radius:7px;font-size:0.85rem;color:#0F172A;outline:none;background:#F8FAFC;cursor:pointer}
+.dateInput:focus{border-color:#4F46E5}
+
+/* ATTENDANCE QUICK BUTTONS */
+.attendanceActions{display:flex;gap:4px;flex-wrap:wrap}
+.attBtn{padding:0.3rem 0.55rem;border-radius:5px;font-size:0.7rem;font-weight:600;border:1.5px solid;cursor:pointer;transition:all 0.1s;white-space:nowrap}
+.attBtnPresent{background:#D1FAE5;color:#065F46;border-color:#A7F3D0}.attBtnPresent:hover{background:#A7F3D0}
+.attBtnAbsent{background:#FEE2E2;color:#991B1B;border-color:#FECACA}.attBtnAbsent:hover{background:#FECACA}
+.attBtnLate{background:#FEF3C7;color:#92400E;border-color:#FDE68A}.attBtnLate:hover{background:#FDE68A}
+.attBtnPermission{background:#EDE9FE;color:#5B21B6;border-color:#DDD6FE}.attBtnPermission:hover{background:#DDD6FE}
+.attBtnVacation{background:#DBEAFE;color:#1E40AF;border-color:#BFDBFE}.attBtnVacation:hover{background:#BFDBFE}
+.attBtnSick{background:#FFEDD5;color:#9A3412;border-color:#FED7AA}.attBtnSick:hover{background:#FED7AA}
+.attBtnHoliday{background:#E0E7FF;color:#3730A3;border-color:#C7D2FE}.attBtnHoliday:hover{background:#C7D2FE}
+.attBtnCross{background:#EEF2FF;color:#4338CA;border-color:#C7D2FE}.attBtnCross:hover{background:#C7D2FE}
+.attBtnActive{outline:2px solid #4F46E5;outline-offset:1px;transform:scale(1.05)}
+
+/* TIME INPUT */
+.timeInput{width:110px;padding:0.35rem 0.5rem;border:1.5px solid #CBD5E1;border-radius:5px;font-size:0.82rem;text-align:center;outline:none;background:#F8FAFC;font-weight:600;font-variant-numeric:tabular-nums}
+.timeInput:focus{border-color:#4F46E5;background:white}
+
+/* CALENDAR */
+.calendarGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.calHeader{padding:0.4rem;text-align:center;font-size:0.7rem;font-weight:700;color:#475569;text-transform:uppercase}
+.calCell{padding:0.35rem;text-align:center;border-radius:6px;font-size:0.72rem;font-weight:600;min-height:36px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all 0.1s;border:1px solid transparent}
+.calCell:hover{border-color:#CBD5E1;background:#F8FAFC}
+.calCellEmpty{cursor:default}.calCellEmpty:hover{border-color:transparent;background:transparent}
+.calCellToday{border-color:#4F46E5!important;background:#EEF2FF!important}
+.calDay{font-size:0.68rem;color:#64748B;margin-bottom:1px}
+.calDot{width:8px;height:8px;border-radius:50%;margin-top:2px}
+
+/* PAYROLL CARDS */
+.periodCard{background:white;border:1px solid #CBD5E1;border-radius:8px;padding:1rem;display:flex;flex-direction:column;gap:0.5rem;transition:all 0.15s;cursor:pointer}
+.periodCard:hover{box-shadow:0 2px 8px rgba(0,0,0,0.08);border-color:#4F46E5}
+.periodCardHeader{display:flex;align-items:center;justify-content:space-between}
+.periodCardName{font-size:0.9rem;font-weight:700;color:#0F172A}
+.periodCardDates{font-size:0.75rem;color:#64748B}
+.periodCardFooter{display:flex;align-items:center;justify-content:space-between;padding-top:0.5rem;border-top:1px solid #E2E8F0}
+.periodCardAmount{font-size:1.1rem;font-weight:800;color:#0F172A}
+.periodsGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:0.75rem;margin-bottom:1rem}
+
+/* CONFIG */
+.configGrid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.configCard{background:white;border:1px solid #CBD5E1;border-radius:8px;padding:1rem}
+.configCardTitle{font-size:0.85rem;font-weight:700;color:#0F172A;margin-bottom:0.75rem;display:flex;align-items:center;gap:0.5rem}
+.configItem{display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid #F1F5F9}
+.configItem:last-child{border-bottom:none}
+.configItemLabel{font-size:0.8rem;color:#475569;font-weight:500}
+.configItemValue{font-size:0.85rem;color:#0F172A;font-weight:600}
+.configInput{width:100px;padding:0.4rem 0.6rem;border:1.5px solid #CBD5E1;border-radius:5px;font-size:0.82rem;text-align:right;outline:none;font-weight:600;background:#F8FAFC}
+.configInput:focus{border-color:#4F46E5;background:white}
+
+/* TAG LIST (departments/positions) */
+.tagList{display:flex;flex-wrap:wrap;gap:0.4rem;margin-top:0.5rem}
+.tag{display:inline-flex;align-items:center;gap:0.3rem;padding:0.3rem 0.65rem;background:#EEF2FF;border:1px solid #C7D2FE;border-radius:99px;font-size:0.75rem;font-weight:600;color:#4338CA}
+.tagRemove{width:14px;height:14px;border:none;background:transparent;cursor:pointer;color:#4338CA;font-size:0.85rem;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:all 0.1s}
+.tagRemove:hover{background:#C7D2FE}
+.tagInput{padding:0.3rem 0.65rem;border:1.5px dashed #CBD5E1;border-radius:99px;font-size:0.75rem;outline:none;width:120px;background:transparent}
+.tagInput:focus{border-color:#4F46E5}
+
+/* TOGGLE CHIPS (employee selector in reports) */
+.chipList{display:flex;flex-wrap:wrap;gap:0.4rem}
+.chipBtn{display:inline-flex;align-items:center;gap:0.3rem;padding:0.3rem 0.7rem;border-radius:99px;font-size:0.78rem;font-weight:600;border:1.5px solid #CBD5E1;cursor:pointer;transition:all 0.12s;background:white;color:#475569}
+.chipBtn:hover{border-color:#4F46E5;color:#4F46E5;background:#F8FAFC}
+.chipActive{background:#EEF2FF;border-color:#C7D2FE;color:#4338CA}
+.chipActive:hover{background:#C7D2FE;border-color:#4F46E5;color:#3730A3}
+
+/* PAYROLL DETAIL TABLE */
+.payrollTable{width:100%;border-collapse:collapse;font-size:0.8rem}
+.payrollTable th{background:#E2E8F0;padding:0.5rem 0.7rem;text-align:left;font-size:0.68rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.05em;border-bottom:2px solid #CBD5E1}
+.payrollTable td{padding:0.5rem 0.7rem;border-bottom:1px solid #E2E8F0;color:#0F172A}
+.payrollTable tbody tr:nth-child(even){background:#FAFBFC}
+.payrollTable tbody tr:hover{background:#EEF2FF}
+.payrollTable .cellRight{text-align:right;font-variant-numeric:tabular-nums}
+.payrollTable .cellBold{font-weight:700}
+.payrollTable .cellGreen{color:#059669}
+.payrollTable .cellRed{color:#DC2626}
+.totalRow{background:#F8FAFC!important;font-weight:700;border-top:2px solid #CBD5E1}
+.totalRow td{padding:0.65rem 0.7rem;font-size:0.85rem}
+
+/* CELL UTILITIES */
+.cellRight{text-align:right;font-variant-numeric:tabular-nums}
+.cellGreen{color:#059669;font-weight:600}
+.cellRed{color:#DC2626;font-weight:600}
+
+/* ============================================================
+   LOANS / PRÉSTAMOS
+   ============================================================ */
+.loansKpiRow{display:grid;grid-template-columns:repeat(4,1fr);gap:0.75rem;margin-bottom:0.5rem}
+.loanKpi{background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:0.85rem 1rem;display:flex;flex-direction:column;align-items:center;gap:0.25rem}
+.loanKpiVal{font-size:1.4rem;font-weight:800;color:#0F172A;letter-spacing:-0.02em}
+.loanKpiLabel{font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:#64748B;text-align:center}
+
+.cuotaBadge{display:inline-flex;align-items:center;padding:0.2rem 0.55rem;background:#EEF2FF;border:1px solid #C7D2FE;border-radius:99px;font-size:0.72rem;font-weight:700;color:#4338CA}
+
+.balanceBar{width:100%;height:6px;background:#E2E8F0;border-radius:99px;overflow:hidden;margin-bottom:4px}
+.balanceBarFill{height:100%;background:linear-gradient(90deg,#059669,#34D399);border-radius:99px;transition:width 0.4s ease}
+
+/* Loan Preview Box inside modal */
+.loanPreview{margin-top:1rem;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:0.85rem 1rem;display:flex;flex-direction:column;gap:0.35rem}
+.loanPreviewRow{display:flex;justify-content:space-between;font-size:0.82rem;color:#065F46}
+.loanPreviewRow strong{color:#0F172A}
+
+/* ============================================================
+   BOLETA DE PAGO / RECEIPT MODAL
+   ============================================================ */
+.receiptOverlay{position:fixed;inset:0;background:rgba(15,23,42,0.6);display:flex;align-items:flex-start;justify-content:center;z-index:200;backdrop-filter:blur(6px);padding:1.5rem 1rem;overflow-y:auto;animation:fadeIn 0.18s ease}
+
+.receiptModal{background:white;width:100%;max-width:720px;border-radius:12px;box-shadow:0 30px 60px rgba(0,0,0,0.3);animation:slideUp 0.22s ease;font-family:'Courier New',Courier,monospace;overflow:hidden}
+
+/* Boleta Header */
+.receiptHeader{display:flex;justify-content:space-between;align-items:flex-start;background:white;color:#0F172A;padding:1.25rem 1.5rem;gap:1rem;flex-wrap:wrap;border-bottom:2px solid #E2E8F0}
+.receiptCompany{flex:1}
+.receiptCompanyName{font-size:1.1rem;font-weight:800;letter-spacing:0.02em;margin-bottom:0.3rem;color:#0F172A}
+.receiptCompanyInfo{display:flex;flex-direction:column;gap:0.1rem;font-size:0.72rem;color:#64748B}
+.receiptMeta{text-align:right;flex-shrink:0}
+.receiptTitle{font-size:0.78rem;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#4F46E5;margin-bottom:0.3rem}
+.receiptPeriod{font-size:0.72rem;color:#64748B}
+
+/* Employee Info Grid */
+.receiptEmpInfo{display:grid;grid-template-columns:1fr 1fr;gap:0.15rem 1rem;padding:0.85rem 1.5rem;border-bottom:2px dashed #CBD5E1}
+.receiptEmpRow{display:flex;gap:0.5rem;font-size:0.78rem}
+.receiptEmpLabel{color:#64748B;font-weight:600;white-space:nowrap;min-width:100px}
+.receiptEmpVal{color:#0F172A;font-weight:500}
+
+/* Two-column income / deductions */
+.receiptColumns{display:grid;grid-template-columns:1fr 1fr;border-bottom:2px dashed #CBD5E1}
+.receiptCol{padding:0.85rem 1.25rem;border-right:1px dashed #CBD5E1}
+.receiptCol:last-child{border-right:none}
+.receiptColTitle{font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#475569;padding:0.35rem 0;border-bottom:1px solid #E2E8F0;margin-bottom:0.4rem}
+.receiptItem{display:flex;justify-content:space-between;font-size:0.76rem;padding:0.2rem 0;color:#0F172A;border-bottom:1px dotted #E2E8F0;gap:0.5rem}
+.receiptItem span:last-child{font-weight:600;white-space:nowrap;text-align:right}
+.receiptItemTotal{display:flex;justify-content:space-between;font-size:0.78rem;padding:0.35rem 0;font-weight:700;color:#0F172A;border-top:2px solid #CBD5E1;margin-top:0.25rem;gap:0.5rem}
+.receiptItemTotal span:last-child{white-space:nowrap;text-align:right}
+
+/* Net pay highlight */
+.receiptNet{background:white;padding:1rem 1.5rem;text-align:center;border-bottom:2px dashed #CBD5E1;border-top:2px solid #E2E8F0}
+.receiptNetLabel{font-size:0.7rem;letter-spacing:0.14em;text-transform:uppercase;font-weight:700;color:#4F46E5;margin-bottom:0.25rem}
+.receiptNetAmount{font-size:2rem;font-weight:900;letter-spacing:-0.02em;color:#0F172A;line-height:1;margin-bottom:0.35rem}
+.receiptNetWords{font-size:0.72rem;color:#64748B;font-style:italic}
+
+/* Signatures */
+.receiptSignatures{display:flex;justify-content:space-around;padding:1.25rem 1.5rem;gap:1rem;border-bottom:2px dashed #CBD5E1}
+.receiptSignature{flex:1;display:flex;flex-direction:column;align-items:center;gap:0.35rem;max-width:220px}
+.receiptSignatureLine{width:100%;height:1px;background:#0F172A;margin-top:2.5rem}
+.receiptSignatureLabel{font-size:0.7rem;color:#475569;text-align:center;font-family:sans-serif}
+
+/* Footer of receipt */
+.receiptFooter{display:flex;justify-content:space-between;padding:0.6rem 1.5rem;font-size:0.65rem;color:#94A3B8;border-bottom:1px solid #E2E8F0;font-family:sans-serif}
+
+/* Action buttons (screen only) */
+.receiptActions{display:flex;justify-content:flex-end;gap:0.5rem;padding:0.85rem 1.25rem;border-radius:0 0 12px 12px}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media(max-width:1024px){
+.kpiStrip{grid-template-columns:repeat(2,1fr)}
+.configGrid{grid-template-columns:1fr}
+.formGrid{grid-template-columns:1fr}
+.loansKpiRow{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:768px){
+.sidebar{display:none}
+.topBar{flex-wrap:wrap;padding:0.5rem 1rem}
+.kpiStrip{grid-template-columns:1fr 1fr}
+.contentArea{padding:0.5rem 0.75rem}
+.periodsGrid{grid-template-columns:1fr}
+.calendarGrid{font-size:0.65rem}
+.loansKpiRow{grid-template-columns:1fr 1fr}
+.receiptColumns{grid-template-columns:1fr}
+.receiptCol{border-right:none;border-bottom:1px dashed #CBD5E1}
+.receiptEmpInfo{grid-template-columns:1fr}
+.receiptHeader{flex-direction:column}
+.receiptMeta{text-align:left}
+}
+
+/* ============================================================
+   PRINT STYLES — Solo muestra la Boleta de Pago
+   ============================================================ */
+@media print {
+  .receiptActions { display: none !important; }
+}
+

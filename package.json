@@ -3,22 +3,29 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "deploy": "firebase deploy --only hosting",
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "deploy": "npm run build && firebase deploy --only hosting,firestore:rules",
+    "deploy:functions": "npm run build && firebase deploy",
+    "deploy:rules": "firebase deploy --only firestore:rules,storage"
   },
   "dependencies": {
     "@imgly/background-removal": "^1.7.0",
-    "esbuild": "^0.28.0",
-    "firebase": "^12.11.0",
+    "dompurify": "^3.4.2",
+    "firebase": "^12.13.0",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
-    "next": "16.2.3",
     "nodemailer": "^8.0.5",
     "qrcode": "^1.5.4",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "react-icons": "^5.6.0"
+    "react-icons": "^5.6.0",
+    "react-router-dom": "^7.5.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.4.1",
+    "vite": "^6.3.5"
   }
 }
