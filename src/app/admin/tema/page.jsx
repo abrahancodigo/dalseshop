@@ -5,7 +5,7 @@ import AdminHeader from "@/components/admin/AdminHeader";
 import { useAdminLayout } from "../layout";
 import { useAuth } from "@/context/AuthContext";
 import { useStore } from "@/context/StoreContext";
-import { getStoreTheme, saveStoreTheme } from "@/lib/firestore";
+import { getStoreTheme, saveStoreTheme } from "@/lib/supabase-queries";
 import adminStyles from "../admin.module.css";
 import styles from "./tema.module.css";
 

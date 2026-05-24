@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import AdminHeader from "@/components/admin/AdminHeader";
 import { useAdminLayout } from "../../layout";
 import { useAuth } from "@/context/AuthContext";
-import { getBlogPosts, saveBlogPost, deleteBlogPost } from "@/lib/firestore";
+import { getBlogPosts, saveBlogPost, deleteBlogPost } from "@/lib/supabase-queries";
 import { Link, useNavigate } from "react-router-dom";
 import { HiOutlineDocumentText, HiOutlinePlusCircle, HiOutlinePencilSquare, HiOutlineTrash, HiOutlineGlobeAlt, HiOutlineEyeSlash } from "react-icons/hi2";
 import adminStyles from "../../admin.module.css";

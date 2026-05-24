@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import AdminHeader from "@/components/admin/AdminHeader";
 import { useAdminLayout } from "../layout";
 import { formatPrice } from "@/lib/format";
-import { getProducts, deleteProduct, getCategories, getReviews } from "@/lib/firestore";
+import { getProducts, deleteProduct, getCategories, getReviews } from "@/lib/supabase-queries";
 import { useAuth } from "@/context/AuthContext";
 import { Link } from "react-router-dom";
 import {

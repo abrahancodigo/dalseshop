@@ -5,7 +5,7 @@ import { useAdminLayout } from "./layout";
 import { useStore } from "@/context/StoreContext";
 import { useEffect, useState } from "react";
 import { formatPrice } from "@/lib/format";
-import { getProducts, getOrders, getCategories } from "@/lib/firestore";
+import { getProducts, getOrders, getCategories } from "@/lib/supabase-queries";
 import {
   HiOutlineShoppingBag,
   HiOutlineClipboardDocumentList,

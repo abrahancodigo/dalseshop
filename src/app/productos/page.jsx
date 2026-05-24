@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo, useRef } from "react";
 import StoreHeader from "@/components/store/Header";
 import StoreFooter from "@/components/store/Footer";
 import ProductCard from "@/components/store/ProductCard";
-import { onProductsChange } from "@/lib/firestore";
+import { onProductsChange } from "@/lib/supabase-queries";
 import { useCart } from "@/context/CartContext";
 import { useStore } from "@/context/StoreContext";
 import { formatPrice } from "@/lib/format";

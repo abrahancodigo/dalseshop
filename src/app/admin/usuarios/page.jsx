@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import AdminHeader from "@/components/admin/AdminHeader";
 import { useAdminLayout } from "../layout";
 import { useAuth } from "@/context/AuthContext";
-import { getUsers, saveUser, deleteUser } from "@/lib/firestore";
+import { getUsers, saveUser, deleteUser } from "@/lib/supabase-queries";
 import { ROLE_PERMISSIONS } from "@/lib/permissions";
 import {
   HiOutlineShieldCheck,

@@ -5,7 +5,7 @@ import AdminHeader from "@/components/admin/AdminHeader";
 import { useAdminLayout } from "../layout";
 import { useAuth } from "@/context/AuthContext";
 import { formatPrice } from "@/lib/format";
-import { getOrders, saveOrder, getOrderById, deleteOrder } from "@/lib/firestore";
+import { getOrders, saveOrder, getOrderById, deleteOrder } from "@/lib/supabase-queries";
 import {
   HiOutlineClipboardDocumentList,
   HiOutlineEye,

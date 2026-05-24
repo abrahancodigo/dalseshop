@@ -5,7 +5,7 @@ import { useStore } from "@/context/StoreContext";
 import StoreHeader from "@/components/store/Header";
 import StoreFooter from "@/components/store/Footer";
 import SectionRenderer from "@/components/sections/SectionRenderer";
-import { getHomePage } from "@/lib/firestore";
+import { getHomePage } from "@/lib/supabase-queries";
 import { Link } from "react-router-dom";
 import { HiOutlineRocketLaunch, HiOutlineCog6Tooth } from "react-icons/hi2";
 import styles from "./home.module.css";

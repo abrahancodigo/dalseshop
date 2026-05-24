@@ -5,7 +5,7 @@ import ProductCard from "@/components/store/ProductCard";
 import StoreHeader from "@/components/store/Header";
 import StoreFooter from "@/components/store/Footer";
 import { formatPrice } from "@/lib/format";
-import { getProductBySlug, getReviews, saveReview, getRelatedProducts } from "@/lib/firestore";
+import { getProductBySlug, getReviews, saveReview, getRelatedProducts } from "@/lib/supabase-queries";
 import { useStore } from "@/context/StoreContext";
 import { useCart } from "@/context/CartContext";
 import { useImage } from "@/context/ImageContext";

@@ -16,7 +16,7 @@ import {
   writeBatch,
   runTransaction
 } from "firebase/firestore";
-import { db } from "./firebase";
+import { db } from "./supabase";
 
 // =====================================================
 // SEARCH CACHES — prevents re-downloading entire

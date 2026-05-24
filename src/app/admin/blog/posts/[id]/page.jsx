@@ -6,7 +6,7 @@ import AdminHeader from "@/components/admin/AdminHeader";
 import ImageUploader from "@/components/admin/ImageUploader";
 import { useAdminLayout } from "../../../layout";
 import { useAuth } from "@/context/AuthContext";
-import { getBlogPostById, saveBlogPost } from "@/lib/firestore";
+import { getBlogPostById, saveBlogPost } from "@/lib/supabase-queries";
 import { HiOutlineArrowLeft } from "react-icons/hi2";
 import adminStyles from "../../../admin.module.css";
 

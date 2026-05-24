@@ -3,7 +3,7 @@
 import { Suspense } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { getOrderById } from "@/lib/firestore";
+import { getOrderById } from "@/lib/supabase-queries";
 import { generateOrderInvoice, prepareLogoForPDF } from "@/lib/invoice";
 import StoreHeader from "@/components/store/Header";
 import StoreFooter from "@/components/store/Footer";

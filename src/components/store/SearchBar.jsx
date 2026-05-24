@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { HiOutlineMagnifyingGlass, HiOutlineXMark } from "react-icons/hi2";
-import { searchProducts } from "@/lib/firestore";
+import { searchProducts } from "@/lib/supabase-queries";
 import { formatPrice } from "@/lib/format";
 import { Link } from "react-router-dom";
 import { useStore } from "@/context/StoreContext";

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import AdminHeader from "@/components/admin/AdminHeader";
 import { useAdminLayout } from "../../layout";
 import { useAuth } from "@/context/AuthContext";
-import { getReviews, deleteReview, saveReview } from "@/lib/firestore";
+import { getReviews, deleteReview, saveReview } from "@/lib/supabase-queries";
 import { HiOutlineStar, HiOutlineTrash, HiOutlineCheckCircle, HiOutlineXCircle } from "react-icons/hi2";
 import adminStyles from "../../admin.module.css";
 import styles from "./resenas.module.css";

@@ -8,7 +8,7 @@ import {
   onStoreNavigationChange,
   onBrandsChange,
   getCategories,
-} from "@/lib/firestore";
+} from "@/lib/supabase-queries";
 
 const StoreContext = createContext({});
 
@@ -119,7 +119,6 @@ export function StoreProvider({ children }) {
     let unsubBrands = () => {};
 
     try {
-      // Listen to realtime changes for config documents (single doc = cheap)
       unsubSettings = onStoreSettingsChange((data) => {
         if (data) setSettings({ ...defaultSettings, ...data });
         setLoading(false);
@@ -137,19 +136,16 @@ export function StoreProvider({ children }) {
         if (data) setNavigation({ ...defaultNavigation, ...data });
       });
 
-      // Brands realtime listener — nuevas marcas aparecen automáticamente
       unsubBrands = onBrandsChange((data) => {
         setBrands(data);
       });
 
-      // Categories: one-shot fetch (rarely change, small collection)
       getCategories().then(setCategories).catch(() => {});
     } catch (err) {
       console.warn("Error setting up store listeners:", err.message);
       setLoading(false);
     }
 
-    // Safety timeout - ensure loading completes even if Firestore is unreachable
     const timeout = setTimeout(() => {
       setLoading(false);
     }, 5000);
@@ -164,7 +160,6 @@ export function StoreProvider({ children }) {
     };
   }, []);
 
-  // Apply theme as CSS variables
   useEffect(() => {
     const root = document.documentElement;
     root.style.setProperty("--color-primary", theme.primaryColor || defaultTheme.primaryColor);
@@ -176,7 +171,6 @@ export function StoreProvider({ children }) {
     root.style.setProperty("--border-radius", (theme.borderRadius || defaultTheme.borderRadius) + "px");
     root.style.setProperty("--color-muted", theme.mutedTextColor || defaultTheme.mutedTextColor);
 
-    // Dynamic contrast colors
     const getContrastColor = (hex) => {
       if (!hex) return "white";
       const r = parseInt(hex.slice(1, 3), 16);
@@ -191,8 +185,6 @@ export function StoreProvider({ children }) {
 
     root.style.setProperty("--color-secondary-text", theme.secondaryContrastColor || autoSecondaryText);
     root.style.setProperty("--color-primary-text", theme.primaryContrastColor || autoPrimaryText);
-
-    // Manual or Auto colors for Header/Footer
     root.style.setProperty("--color-header-text", theme.headerTextColor || theme.secondaryContrastColor || autoSecondaryText);
     root.style.setProperty("--color-footer-text", theme.footerTextColor || theme.secondaryContrastColor || autoSecondaryText);
   }, [theme]);

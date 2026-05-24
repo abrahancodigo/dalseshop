@@ -11,7 +11,7 @@ import {
 } from "react-icons/hi2";
 import StoreHeader from "@/components/store/Header";
 import StoreFooter from "@/components/store/Footer";
-import { addSubscriber, getBlogConfig, getBlogPosts } from "@/lib/firestore";
+import { addSubscriber, getBlogConfig, getBlogPosts } from "@/lib/supabase-queries";
 import styles from "./blog.module.css";
 
 export default function BlogPage() {

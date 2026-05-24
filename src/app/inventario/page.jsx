@@ -2,8 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
-import { writeBatch, doc, collection, serverTimestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { supabase } from "@/lib/supabase";
 import StoreHeader from "@/components/store/Header";
 import StoreFooter from "@/components/store/Footer";
 import { useAuth } from "@/context/AuthContext";
@@ -12,7 +11,7 @@ import {
   getProducts, saveProduct,
   getInventoryMovements, saveInventoryMovement, bulkSaveProducts,
   deleteProduct, deleteInventoryMovement, updateInventoryMovement,
-} from "@/lib/firestore";
+} from "@/lib/supabase-queries";
 import { formatPrice } from "@/lib/format";
 import { getLocalDateString } from "@/lib/dates";
 import { jsPDF } from "jspdf";
@@ -584,25 +583,23 @@ export default function InventarioPage() {
 
     setSavingMov(true);
     try {
-      const batch = writeBatch(db);
+      const now = new Date().toISOString();
       for (const item of items) {
         const product = products.find(p => p.id === item.productId);
         if (!product) continue;
         const qty = parseInt(item.quantity);
         const sign = typeDef?.sign ?? 0;
         const newStock = Math.max(0, (product.stock || 0) + qty * sign);
-        batch.update(doc(db, "products", item.productId), { stock: newStock });
+        await supabase.from("products").update({ stock: newStock, updated_at: now }).eq("id", item.productId);
         setProducts(prev => prev.map(p => p.id === item.productId ? { ...p, stock: newStock } : p));
-        const movRef = doc(collection(db, "inventory_movements"));
-        batch.set(movRef, {
-          productId: item.productId, productName: item.productName, productSku: item.productSku || "",
-          type: movForm.type, quantity: qty, previousStock: product.stock, newStock,
+        await supabase.from("inventory_movements").insert({
+          product_id: item.productId, product_name: item.productName, product_sku: item.productSku || "",
+          type: movForm.type, quantity: qty, previous_stock: product.stock, new_stock: newStock,
           reason: movForm.reason, reference: ref,
-          notes: movForm.notes, userEmail: user?.email || "",
-          createdAt: serverTimestamp(),
+          notes: movForm.notes, user_email: user?.email || "",
+          created_at: now,
         });
       }
-      await batch.commit();
       setSuccessMsg(`Movimiento registrado (${items.length} producto${items.length > 1 ? "s" : ""})`);
       setTimeout(() => setSuccessMsg(""), 2500);
       setShowMovForm(false);
@@ -1101,14 +1098,13 @@ export default function InventarioPage() {
       const BATCH_SIZE = 500;
       for (let i = 0; i < batchOps.length; i += BATCH_SIZE) {
         const chunk = batchOps.slice(i, i + BATCH_SIZE);
-        const batch = writeBatch(db);
+        const now = new Date().toISOString();
         for (const op of chunk) {
           if (op.type === "product") {
-            batch.update(doc(db, "products", op.id), op.data);
+            await supabase.from("products").update({ ...op.data, updated_at: now }).eq("id", op.id);
           } else {
-            const movRef = doc(collection(db, "inventory_movements"));
-            batch.set(movRef, {
-              productId: op.productId,
+            await supabase.from("inventory_movements").insert({
+              product_id: op.productId,
               productName: op.productName,
               productSku: op.productSku,
               type: op.movType,
@@ -1117,12 +1113,10 @@ export default function InventarioPage() {
               newStock: op.newStock,
               reason: "Importación masiva de inventario",
               reference: `IMP-${getLocalDateString()}`,
-              userEmail: user?.email || "",
-              createdAt: serverTimestamp(),
+              created_at: now
             });
           }
         }
-        await batch.commit();
       }
 
       const result = { updated, skipped, errors };

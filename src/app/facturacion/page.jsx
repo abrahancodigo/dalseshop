@@ -4,9 +4,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useStore } from "@/context/StoreContext";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState, useCallback, useRef } from "react";
-import { getOrdersByEmail, saveOrder, getStoreSettings, searchProducts, searchCustomers, saveCustomer } from "@/lib/firestore";
-import { functions } from "@/lib/firebase";
-import { httpsCallable } from "firebase/functions";
+import { getOrdersByEmail, saveOrder, getStoreSettings, searchProducts, searchCustomers, saveCustomer } from "@/lib/supabase-queries";
+import { supabase } from "@/lib/supabase";
 import StoreHeader from "@/components/store/Header";
 import StoreFooter from "@/components/store/Footer";
 import { formatPrice } from "@/lib/format";
@@ -469,8 +468,9 @@ function NuevoPedidoModal({ settings, user, onClose, onSuccess }) {
       try {
         const doc = await generateOrderInvoice(fullOrder, settingsWithLogo, window.location.origin, { showPrices: showPricesVal });
         const pdfBase64 = doc.output("datauristring").split(",")[1];
-        const sendOrderEmail = httpsCallable(functions, "sendOrderEmail");
-        await sendOrderEmail({ order: fullOrder, storeSettings: freshSettings, pdfBase64: pdfBase64 || "", showPrices: showPricesVal });
+        await supabase.functions.invoke("send-order-email", {
+          body: { order: fullOrder, storeSettings: freshSettings, pdfBase64: pdfBase64 || "", showPrices: showPricesVal }
+        });
       } catch (mailErr) {
         console.error("Email error:", mailErr);
       }

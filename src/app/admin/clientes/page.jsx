@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import AdminHeader from "@/components/admin/AdminHeader";
 import { useAdminLayout } from "../layout";
 import { formatPrice } from "@/lib/format";
-import { getCustomers, getOrdersByEmail } from "@/lib/firestore";
+import { getCustomers, getOrdersByEmail } from "@/lib/supabase-queries";
 import { HiOutlineUsers, HiOutlineMagnifyingGlass, HiOutlineEnvelope, HiOutlinePhone, HiOutlineMapPin } from "react-icons/hi2";
 import adminStyles from "../admin.module.css";
 import styles from "./clientes.module.css";

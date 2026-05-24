@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import AdminHeader from "@/components/admin/AdminHeader";
 import { useAdminLayout } from "../layout";
 import { useAuth } from "@/context/AuthContext";
-import { getShippingConfig, saveShippingConfig } from "@/lib/firestore";
+import { getShippingConfig, saveShippingConfig } from "@/lib/supabase-queries";
 import { HiOutlineTruck, HiOutlinePlusCircle, HiOutlineTrash } from "react-icons/hi2";
 import adminStyles from "../admin.module.css";
 

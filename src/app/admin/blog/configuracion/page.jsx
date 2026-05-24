@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import AdminHeader from "@/components/admin/AdminHeader";
 import { useAdminLayout } from "../../layout";
 import { useAuth } from "@/context/AuthContext";
-import { getBlogConfig, saveBlogConfig } from "@/lib/firestore";
+import { getBlogConfig, saveBlogConfig } from "@/lib/supabase-queries";
 import adminStyles from "../../admin.module.css";
 
 export default function BlogConfigPage() {

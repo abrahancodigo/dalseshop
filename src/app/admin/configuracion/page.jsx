@@ -6,9 +6,8 @@ import ImageUploader from "@/components/admin/ImageUploader";
 import { useAdminLayout } from "../layout";
 import { useAuth } from "@/context/AuthContext";
 import { useStore } from "@/context/StoreContext";
-import { getStoreSettings, saveStoreSettings } from "@/lib/firestore";
-import { functions } from "@/lib/firebase";
-import { httpsCallable } from "firebase/functions";
+import { getStoreSettings, saveStoreSettings } from "@/lib/supabase-queries";
+import { supabase } from "@/lib/supabase";
 import adminStyles from "../admin.module.css";
 
 export default function ConfiguracionPage() {
@@ -160,19 +159,20 @@ export default function ConfiguracionPage() {
                     const email = form.notifications?.ownerEmail;
                     if (!email) return alert("Ingresa un email principal primero");
                     try {
-                      const sendOrderEmail = httpsCallable(functions, "sendOrderEmail");
-                      await sendOrderEmail({
-                        order: {
-                          id: "TEST-123",
-                          total: 0,
-                          subtotal: 0,
-                          discount: 0,
-                          shipping: 0,
-                          items: [{ name: "Producto de Prueba", quantity: 1, price: 0 }],
-                          customer: { name: "Prueba de Sistema", email: email, phone: "000", address: "Calle Prueba", city: "Ciudad" }
-                        },
-                        storeSettings: form,
-                        pdfBase64: ""
+                      await supabase.functions.invoke("send-order-email", {
+                        body: {
+                          order: {
+                            id: "TEST-123",
+                            total: 0,
+                            subtotal: 0,
+                            discount: 0,
+                            shipping: 0,
+                            items: [{ name: "Producto de Prueba", quantity: 1, price: 0 }],
+                            customer: { name: "Prueba de Sistema", email: email, phone: "000", address: "Calle Prueba", city: "Ciudad" }
+                          },
+                          storeSettings: form,
+                          pdfBase64: ""
+                        }
                       });
                       alert("¡Correo de prueba enviado con éxito! Revisa tu bandeja de entrada (y spam).");
                     } catch (e) {
@@ -242,12 +242,13 @@ export default function ConfiguracionPage() {
                     if (emails.length === 0) return alert("Ingresa al menos un email de contacto primero");
                     
                     try {
-                      const sendContactEmail = httpsCallable(functions, "sendContactEmail");
-                      await sendContactEmail({
-                        name: "Usuario de Prueba",
-                        email: "prueba@cliente.com",
-                        message: "Este es un mensaje de prueba desde el panel de administración.",
-                        storeSettings: form
+                      await supabase.functions.invoke("send-contact-email", {
+                        body: {
+                          name: "Usuario de Prueba",
+                          email: "prueba@cliente.com",
+                          message: "Este es un mensaje de prueba desde el panel de administración.",
+                          storeSettings: form
+                        }
                       });
                       alert("¡Correo de contacto enviado con éxito!");
                     } catch (e) {

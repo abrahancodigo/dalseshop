@@ -5,7 +5,7 @@ import AdminHeader from "@/components/admin/AdminHeader";
 import { useAdminLayout } from "../layout";
 import { useAuth } from "@/context/AuthContext";
 import { useStore } from "@/context/StoreContext";
-import { getStoreFeatures, saveStoreFeatures } from "@/lib/firestore";
+import { getStoreFeatures, saveStoreFeatures } from "@/lib/supabase-queries";
 import {
   HiOutlineShoppingCart, HiOutlineClipboardDocumentList, HiOutlineMagnifyingGlass,
   HiOutlineUsers, HiOutlineTicket, HiOutlineStar, HiOutlineHeart,

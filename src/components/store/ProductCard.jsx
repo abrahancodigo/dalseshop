@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useImage } from "@/context/ImageContext";
 import { useStore } from "@/context/StoreContext";
-import { getReviews } from "@/lib/firestore";
+import { getReviews } from "@/lib/supabase-queries";
 import { formatPrice } from "@/lib/format";
 import styles from "./ProductCard.module.css";
 import { HiOutlineShoppingCart } from "react-icons/hi2";

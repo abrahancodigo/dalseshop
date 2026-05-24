@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import StoreHeader from "@/components/store/Header";
 import StoreFooter from "@/components/store/Footer";
 import SectionRenderer from "@/components/sections/SectionRenderer";
-import { getPublishedPageBySlug } from "@/lib/firestore";
+import { getPublishedPageBySlug } from "@/lib/supabase-queries";
 import { Link, useParams } from "react-router-dom";
 
 export default function DynamicPage() {

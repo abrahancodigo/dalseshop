@@ -9,9 +9,7 @@ import {
   getPayrollConfig, savePayrollConfig,
   softDeletePayrollPeriod, restorePayrollPeriod, getTrashedPayrollPeriods,
   getLoans, saveLoan, deleteLoan
-} from "@/lib/firestore";
-import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+} from "@/lib/supabase-queries";
 import { useAuth } from "@/context/AuthContext";
 import { useStore } from "@/context/StoreContext";
 import { getLocalDateString, parseLocalDate } from "@/lib/dates";
@@ -1119,7 +1117,7 @@ export default function ControlAsistenciaPage() {
       const updatedPeriod = {
         ...period,
         status: "paid",
-        paidAt: serverTimestamp()
+        paidAt: new Date().toISOString()
       };
       await savePayrollPeriod(period.id, updatedPeriod);
       showToast("Planilla pagada con éxito. Saldos de préstamos actualizados.");

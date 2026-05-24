@@ -5,7 +5,7 @@ import AdminHeader from "@/components/admin/AdminHeader";
 import ImageUploader from "@/components/admin/ImageUploader";
 import { useAdminLayout } from "../layout";
 import { useAuth } from "@/context/AuthContext";
-import { getCategories, saveCategory, deleteCategory } from "@/lib/firestore";
+import { getCategories, saveCategory, deleteCategory } from "@/lib/supabase-queries";
 import {
   HiOutlineSquares2X2,
   HiOutlinePlusCircle,

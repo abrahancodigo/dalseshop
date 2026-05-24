@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import StoreHeader from "@/components/store/Header";
 import StoreFooter from "@/components/store/Footer";
-import { getBlogPostBySlug, getBlogPosts, getBlogConfig } from "@/lib/firestore";
+import { getBlogPostBySlug, getBlogPosts, getBlogConfig } from "@/lib/supabase-queries";
 import { useParams, Link } from "react-router-dom";
 import { HiOutlineArrowLeft, HiOutlineCalendar, HiOutlineUser } from "react-icons/hi2";
 import { sanitizeHtml } from "@/lib/sanitize";

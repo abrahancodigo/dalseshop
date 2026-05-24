@@ -1,8 +1,7 @@
 "use client";
 
 import { useStore } from "@/context/StoreContext";
-import { functions } from "@/lib/firebase";
-import { httpsCallable } from "firebase/functions";
+import { supabase } from "@/lib/supabase";
 import StoreHeader from "@/components/store/Header";
 import StoreFooter from "@/components/store/Footer";
 import styles from "./contacto.module.css";
@@ -36,12 +35,13 @@ export default function ContactoPage() {
     };
 
     try {
-      const sendContactEmail = httpsCallable(functions, "sendContactEmail");
-      await sendContactEmail({
-        name: formData.get("name"),
-        email: formData.get("email"),
-        message: formData.get("message"),
-        storeSettings: settings
+      await supabase.functions.invoke("send-contact-email", {
+        body: {
+          name: formData.get("name"),
+          email: formData.get("email"),
+          message: formData.get("message"),
+          storeSettings: settings
+        }
       });
       setSent(true);
       e.target.reset();

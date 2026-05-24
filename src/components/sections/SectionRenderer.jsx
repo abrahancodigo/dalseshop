@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
-import { getProducts, addSubscriber } from "@/lib/firestore";
+import { getProducts, addSubscriber } from "@/lib/supabase-queries";
 import { useCart } from "@/context/CartContext";
 import { useImage } from "@/context/ImageContext";
 import ProductCard from "@/components/store/ProductCard";

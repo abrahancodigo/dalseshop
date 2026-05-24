@@ -8,9 +8,8 @@ import { useCart } from "@/context/CartContext";
 import { useStore } from "@/context/StoreContext";
 import { useAuth } from "@/context/AuthContext";
 import { formatPrice } from "@/lib/format";
-import { saveOrder, getShippingConfig } from "@/lib/firestore";
-import { functions } from "@/lib/firebase";
-import { httpsCallable } from "firebase/functions";
+import { saveOrder, getShippingConfig } from "@/lib/supabase-queries";
+import { supabase } from "@/lib/supabase";
 import { generateOrderInvoice, prepareLogoForPDF } from "@/lib/invoice";
 import {
   HiOutlineShoppingCart, HiOutlineTruck, HiOutlineBanknotes,
@@ -149,14 +148,15 @@ export default function CheckoutPage() {
             hasPdf: !!pdfBase64,
           }));
 
-          const sendOrderEmail = httpsCallable(functions, "sendOrderEmail");
-          const result = await sendOrderEmail({
-            order: { ...orderData, id },
-            storeSettings: freshSettings,
-            pdfBase64: pdfBase64 || "",
-            showPrices: showPricesVal,
+          const result = await supabase.functions.invoke("send-order-email", {
+            body: {
+              order: { ...orderData, id },
+              storeSettings: freshSettings,
+              pdfBase64: pdfBase64 || "",
+              showPrices: showPricesVal,
+            }
           });
-          console.log("Email sent successfully to:", result.data.recipients);
+          console.log("Email sent successfully to:", result.data?.recipients);
         } catch (callErr) {
           console.error("Email function failed:", callErr);
           console.error("Error code:", callErr.code);

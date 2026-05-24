@@ -6,7 +6,7 @@ import AdminHeader from "@/components/admin/AdminHeader";
 import ImageUploader from "@/components/admin/ImageUploader";
 import { useAdminLayout } from "../../layout";
 import { useAuth } from "@/context/AuthContext";
-import { getPageById, savePage, getCategories } from "@/lib/firestore";
+import { getPageById, savePage, getCategories } from "@/lib/supabase-queries";
 import {
   HiOutlineArrowLeft,
   HiOutlinePlusCircle,

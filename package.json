@@ -12,8 +12,8 @@
   },
   "dependencies": {
     "@imgly/background-removal": "^1.7.0",
+    "@supabase/supabase-js": "^2.106.1",
     "dompurify": "^3.4.2",
-    "firebase": "^12.13.0",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
     "nodemailer": "^8.0.5",

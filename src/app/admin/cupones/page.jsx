@@ -5,7 +5,7 @@ import AdminHeader from "@/components/admin/AdminHeader";
 import { useAdminLayout } from "../layout";
 import { useAuth } from "@/context/AuthContext";
 import { formatPrice } from "@/lib/format";
-import { getCoupons, saveCoupon, deleteCoupon } from "@/lib/firestore";
+import { getCoupons, saveCoupon, deleteCoupon } from "@/lib/supabase-queries";
 import {
   HiOutlineTicket, HiOutlinePlusCircle, HiOutlinePencilSquare,
   HiOutlineTrash, HiOutlineXMark,

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import AdminHeader from "@/components/admin/AdminHeader";
 import { useAdminLayout } from "../layout";
 import { useAuth } from "@/context/AuthContext";
-import { getPages, deletePage, savePage } from "@/lib/firestore";
+import { getPages, deletePage, savePage } from "@/lib/supabase-queries";
 import { Link, useNavigate } from "react-router-dom";
 import {
   HiOutlineDocumentText,

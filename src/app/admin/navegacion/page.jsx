@@ -5,7 +5,7 @@ import AdminHeader from "@/components/admin/AdminHeader";
 import { useAdminLayout } from "../layout";
 import { useAuth } from "@/context/AuthContext";
 import { useStore } from "@/context/StoreContext";
-import { getStoreNavigation, saveStoreNavigation } from "@/lib/firestore";
+import { getStoreNavigation, saveStoreNavigation } from "@/lib/supabase-queries";
 import { uploadImage } from "@/lib/storage";
 import { sanitizeHtml } from "@/lib/sanitize";
 import {

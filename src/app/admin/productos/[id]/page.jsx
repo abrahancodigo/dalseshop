@@ -5,7 +5,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import AdminHeader from "@/components/admin/AdminHeader";
 import { useAdminLayout } from "../../layout";
 import { useAuth } from "@/context/AuthContext";
-import { getProductById, saveProduct, getCategories, getBrands } from "@/lib/firestore";
+import { getProductById, saveProduct, getCategories, getBrands } from "@/lib/supabase-queries";
 import { uploadImage, deleteFile } from "@/lib/storage";
 import { sanitizeHtml } from "@/lib/sanitize";
 import {
