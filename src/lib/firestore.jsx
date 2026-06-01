@@ -215,13 +215,15 @@ export async function searchProducts(searchTerm) {
       const brand = (p.brand || "").toLowerCase();
       const barcode = (p.barcode || "").toLowerCase();
       const sku = (p.sku || "").toLowerCase();
+      const tags = (p.tags || []).map(t => t.toLowerCase());
       
       return name.includes(lowerTerm) || 
              description.includes(lowerTerm) || 
              category.includes(lowerTerm) || 
              brand.includes(lowerTerm) ||
              barcode.includes(lowerTerm) ||
-             sku.includes(lowerTerm);
+             sku.includes(lowerTerm) ||
+             tags.some(t => t.includes(lowerTerm));
     }).slice(0, 8); // Return top 8 results for the preview
   } catch (error) {
     console.error("Error searching products:", error);

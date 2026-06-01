@@ -21,9 +21,8 @@ import styles from "./usuarios.module.css";
 const ROLE_LABELS = {
   superadmin: "Super Admin",
   admin: "Administrador",
-  manager: "Gerente",
-  editor: "Editor",
-  viewer: "Espectador",
+  escritor: "Editor",
+  lector: "Espectador",
 };
 
 const PERMISSION_LABELS = {
@@ -45,6 +44,7 @@ const PERMISSION_LABELS = {
   features: "Funcionalidades",
   users: "Usuarios",
   inventory: "Inventario",
+  payroll: "Planilla",
 };
 
 export default function UsuariosPage() {
@@ -58,7 +58,7 @@ export default function UsuariosPage() {
   const [form, setForm] = useState({
     email: "",
     displayName: "",
-    role: "viewer",
+    role: "lector",
     isActive: true,
   });
   const [customPerms, setCustomPerms] = useState({});
@@ -93,7 +93,7 @@ export default function UsuariosPage() {
 
   const openCreate = () => {
     setEditId(null);
-    setForm({ email: "", displayName: "", role: "viewer", isActive: true });
+    setForm({ email: "", displayName: "", role: "lector", isActive: true });
     setCustomPerms({});
     setError("");
     setShowModal(true);
@@ -104,7 +104,7 @@ export default function UsuariosPage() {
     setForm({
       email: u.email || "",
       displayName: u.displayName || "",
-      role: u.role || "viewer",
+      role: u.role || "lector",
       isActive: u.isActive !== false,
     });
     setCustomPerms(u.customPermissions || {});

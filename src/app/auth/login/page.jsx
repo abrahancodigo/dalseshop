@@ -5,37 +5,107 @@ import { useStore } from "@/context/StoreContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { FcGoogle } from "react-icons/fc";
-import { HiShoppingBag, HiSparkles } from "react-icons/hi2";
+import { HiEnvelope, HiLockClosed, HiOutlineEye, HiOutlineEyeSlash } from "react-icons/hi2";
 import styles from "./login.module.css";
 
 export default function LoginPage() {
-  const { user, isAdmin, loginWithGoogle, loading, redirecting } = useAuth();
+  const { user, isAdmin, loginWithGoogle, registerWithEmail, loginWithEmail, resetPassword, loading, redirecting } = useAuth();
   const { settings } = useStore();
   const navigate = useNavigate();
   const location = useLocation();
   const [error, setError] = useState("");
-  const [loggingIn, setLoggingIn] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [mode, setMode] = useState("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   useEffect(() => {
-    // Only navigate once auth state is fully resolved (not loading, not in redirect)
     if (!loading && !redirecting && user) {
       const from = location.state?.from || (isAdmin ? "/admin" : "/facturacion");
       navigate(from, { replace: true });
     }
   }, [user, isAdmin, loading, redirecting, navigate, location.state?.from]);
 
-  const handleLogin = async () => {
+  const resetForm = () => {
     setError("");
-    setLoggingIn(true);
+    setEmail("");
+    setPassword("");
+    setDisplayName("");
+  };
+
+  const switchMode = (newMode) => {
+    setMode(newMode);
+    setError("");
+  };
+
+  const handleEmailSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    if (!email || !password) {
+      setError("Completa todos los campos");
+      return;
+    }
+    if (mode === "register" && password.length < 6) {
+      setError("La contraseña debe tener al menos 6 caracteres");
+      return;
+    }
+    setSubmitting(true);
     try {
-      await loginWithGoogle();
+      if (mode === "register") {
+        await registerWithEmail(email, password, displayName);
+      } else {
+        await loginWithEmail(email, password);
+      }
     } catch (err) {
-      setError(err.message || "Error al iniciar sesión");
-      setLoggingIn(false);
+      const map = {
+        "auth/email-already-in-use": "Este correo ya está registrado",
+        "auth/invalid-email": "Correo inválido",
+        "auth/user-not-found": "No hay cuenta con este correo",
+        "auth/wrong-password": "Contraseña incorrecta",
+        "auth/invalid-credential": "Correo o contraseña incorrectos",
+        "auth/weak-password": "La contraseña debe tener al menos 6 caracteres",
+        "auth/too-many-requests": "Demasiados intentos. Intenta más tarde",
+      };
+      setError(map[err.code] || err.message || "Error al procesar la solicitud");
+      setSubmitting(false);
     }
   };
 
-  // Show spinner while Firebase initializes OR while processing a Google redirect
+  const handleResetPassword = async () => {
+    setError("");
+    if (!email) {
+      setError("Ingresa tu correo electrónico primero");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await resetPassword(email);
+      setResetSent(true);
+      setSubmitting(false);
+    } catch (err) {
+      const map = {
+        "auth/user-not-found": "No hay cuenta con este correo",
+        "auth/invalid-email": "Correo inválido",
+      };
+      setError(map[err.code] || "Error al enviar el correo de recuperación");
+      setSubmitting(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setError("");
+    setSubmitting(true);
+    try {
+      await loginWithGoogle();
+    } catch (err) {
+      setError(err.message || "Error al iniciar sesión con Google");
+      setSubmitting(false);
+    }
+  };
+
   if (loading || redirecting) {
     return (
       <div className="loading-screen">
@@ -58,19 +128,35 @@ export default function LoginPage() {
       </div>
 
       <div className={styles.card}>
-        <div className={styles.iconWrapper}>
-          <HiShoppingBag className={styles.icon} />
-          <HiSparkles className={styles.sparkle} />
+        <div className={styles.logoWrapper}>
+          {settings.logo ? (
+            <img src={settings.logo} alt={settings.name} className={styles.logo} />
+          ) : (
+            <div className={styles.logoPlaceholder}>
+              {(settings.name || "DS").substring(0, 2).toUpperCase()}
+            </div>
+          )}
         </div>
 
         <h1 className={styles.title}>
           {settings.name || "DalseShop"}
         </h1>
         <p className={styles.subtitle}>Bienvenido</p>
-        <p className={styles.description}>
-          Inicia sesión con tu cuenta de Google para acceder a tu cuenta
-          y disfrutar de tu experiencia de compra.
-        </p>
+
+        <div className={styles.tabs}>
+          <button
+            className={`${styles.tab} ${mode === "login" ? styles.tabActive : ""}`}
+            onClick={() => switchMode("login")}
+          >
+            Iniciar Sesión
+          </button>
+          <button
+            className={`${styles.tab} ${mode === "register" ? styles.tabActive : ""}`}
+            onClick={() => switchMode("register")}
+          >
+            Crear Cuenta
+          </button>
+        </div>
 
         {error && (
           <div className={styles.error}>
@@ -78,24 +164,106 @@ export default function LoginPage() {
           </div>
         )}
 
+        {resetSent ? (
+          <div className={styles.resetSent}>
+            <div className={styles.resetSentIcon}>✓</div>
+            <p className={styles.resetSentText}>
+              Te enviamos un correo a <strong>{email}</strong> para restablecer tu contraseña.
+            </p>
+            <button
+              className={styles.resetSentBack}
+              onClick={() => { setResetSent(false); setError(""); setSubmitting(false); }}
+            >
+              Volver a iniciar sesión
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleEmailSubmit} className={styles.form}>
+            {mode === "register" && (
+              <div className={styles.field}>
+                <HiEnvelope className={styles.fieldIcon} />
+                <input
+                  className={styles.input}
+                  type="text"
+                  placeholder="Nombre completo"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  autoComplete="name"
+                />
+              </div>
+            )}
+            <div className={styles.field}>
+              <HiEnvelope className={styles.fieldIcon} />
+              <input
+                className={styles.input}
+                type="email"
+                placeholder="Correo electrónico"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete={mode === "login" ? "email" : "username"}
+              />
+            </div>
+            <div className={styles.field}>
+              <HiLockClosed className={styles.fieldIcon} />
+              <input
+                className={`${styles.input} ${styles.inputPassword}`}
+                type={showPassword ? "text" : "password"}
+                placeholder="Contraseña"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+                autoComplete={mode === "login" ? "current-password" : "new-password"}
+              />
+              <button
+                type="button"
+                className={styles.eyeBtn}
+                onClick={() => setShowPassword((v) => !v)}
+                tabIndex={-1}
+                aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+              >
+                {showPassword ? <HiOutlineEyeSlash size={20} /> : <HiOutlineEye size={20} />}
+              </button>
+            </div>
+            {mode === "login" && (
+              <button
+                type="button"
+                className={styles.forgotLink}
+                onClick={handleResetPassword}
+                disabled={submitting}
+              >
+                ¿Olvidaste tu contraseña?
+              </button>
+            )}
+            <button
+              type="submit"
+              disabled={submitting}
+              className={styles.submitBtn}
+            >
+              {submitting ? (
+                <div className="spinner" style={{ width: 20, height: 20, borderWidth: 2 }} />
+              ) : (
+                mode === "login" ? "Iniciar Sesión" : "Crear Cuenta"
+              )}
+            </button>
+          </form>
+        )}
+
+        <div className={styles.divider}>
+          <span className={styles.dividerLine} />
+          <span className={styles.dividerText}>O</span>
+          <span className={styles.dividerLine} />
+        </div>
+
         <button
-          onClick={handleLogin}
-          disabled={loggingIn}
+          onClick={handleGoogleLogin}
+          disabled={submitting}
           className={styles.googleBtn}
         >
-          {loggingIn ? (
-            <div className="spinner" style={{ width: 20, height: 20, borderWidth: 2 }} />
-          ) : (
-            <>
-              <FcGoogle size={22} />
-              <span>Continuar con Google</span>
-            </>
-          )}
+          <FcGoogle size={22} />
+          <span>Continuar con Google</span>
         </button>
-
-        <p className={styles.footer}>
-          Accede con tu cuenta Google. Admin: Panel completo | Cliente: Tus pedidos
-        </p>
       </div>
     </div>
   );

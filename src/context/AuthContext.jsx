@@ -6,6 +6,10 @@ import {
   getRedirectResult,
   signOut,
   onAuthStateChanged,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile,
+  sendPasswordResetEmail,
 } from "firebase/auth";
 import { auth, googleProvider, SUPER_ADMIN_EMAIL } from "@/lib/firebase";
 import { getUserByEmail, saveUser, onUserByEmail } from "@/lib/firestore";
@@ -25,6 +29,7 @@ export function AuthProvider({ children }) {
     () => sessionStorage.getItem("auth_redirect_pending") === "1"
   );
   const unsubscribeRef = useRef(null);
+  const isRegisteringRef = useRef(false);
 
   const resolveUser = async (fbUser) => {
     if (fbUser) {
@@ -117,7 +122,9 @@ export function AuthProvider({ children }) {
       // 2. Now subscribe to auth state — Firebase has already processed the redirect
       const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
         if (!active) return;
-        await resolveUser(fbUser);
+        if (!isRegisteringRef.current) {
+          await resolveUser(fbUser);
+        }
         if (active) setLoading(false);
       });
 
@@ -153,6 +160,27 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const registerWithEmail = async (email, password, displayName) => {
+    isRegisteringRef.current = true;
+    try {
+      const credential = await createUserWithEmailAndPassword(auth, email, password);
+      const fbUser = credential.user;
+      const name = (displayName || email.split("@")[0]).trim();
+      await updateProfile(fbUser, { displayName: name });
+      await resolveUser(auth.currentUser);
+    } finally {
+      isRegisteringRef.current = false;
+    }
+  };
+
+  const loginWithEmail = async (email, password) => {
+    await signInWithEmailAndPassword(auth, email, password);
+  };
+
+  const resetPassword = async (email) => {
+    await sendPasswordResetEmail(auth, email);
+  };
+
   const logout = async () => {
     await signOut(auth);
   };
@@ -170,6 +198,9 @@ export function AuthProvider({ children }) {
         hasPermission: (perm) => hasPermission(permissions, perm),
         canManage: (perm) => canManage(permissions, perm),
         loginWithGoogle,
+        registerWithEmail,
+        loginWithEmail,
+        resetPassword,
         logout,
       }}
     >

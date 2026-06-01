@@ -25,7 +25,7 @@ export const ROLE_PERMISSIONS = {
     navigation: "view", products: "view", categories: "view", brands: "view",
     orders: "view", customers: "view", coupons: "view",
     blog: "view", newsletter: "view", reviews: "view", shipping: "view",
-    features: "view", users: false, inventory: "view", payroll: false,
+    features: "view", users: false, inventory: false, payroll: false,
   },
 };
 
