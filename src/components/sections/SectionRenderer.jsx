@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
-import { getProducts, addSubscriber } from "@/lib/firestore";
+import { getProducts, getFeaturedProducts, addSubscriber } from "@/lib/firestore";
 import { useCart } from "@/context/CartContext";
 import { useImage } from "@/context/ImageContext";
 import ProductCard from "@/components/store/ProductCard";
@@ -286,15 +286,8 @@ function FeaturedProductsSection({ config }) {
   const limit = config.count || 4;
 
   useEffect(() => {
-    getProducts({ isActive: true, limitCount: 50 })
-      .then((all) => {
-        const featured = all.filter((p) => p.isFeatured === true || p.isFeatured === "true");
-        if (featured.length > 0) {
-          setProducts(featured.slice(0, limit));
-        } else {
-          setProducts(all.slice(0, limit));
-        }
-      })
+    getFeaturedProducts(limit)
+      .then(setProducts)
       .catch((err) => {
         console.error("Error fetching featured products:", err);
       });

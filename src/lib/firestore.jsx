@@ -295,19 +295,55 @@ export async function getProducts(options = {}) {
 }
 
 export function onProductsChange(options = {}, callback) {
-  let q = collection(db, "products");
   let constraints = [];
-  
   if (options.isActive !== undefined) constraints.push(where("isActive", "==", options.isActive));
   if (options.category) constraints.push(where("category", "==", options.category));
-  
-  const qWithConstraints = query(q, ...constraints, orderBy("createdAt", "desc"));
 
-  return onSnapshot(qWithConstraints, (snapshot) => {
-    callback(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+  const qWithConstraints = query(collection(db, "products"), ...constraints, orderBy("createdAt", "desc"));
+  const mapDocs = (snapshot) => snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+  let unsub = onSnapshot(qWithConstraints, (snapshot) => {
+    callback(mapDocs(snapshot));
   }, (error) => {
+    if (error.code === "failed-precondition" || error.message?.includes("index")) {
+      console.warn("Products listener failed (index missing?), falling back to client-side filter.");
+      unsub();
+      unsub = onSnapshot(collection(db, "products"), (snapshot) => {
+        let products = mapDocs(snapshot);
+        if (options.isActive !== undefined) {
+          products = products.filter((p) => p.isActive === options.isActive || String(p.isActive) === String(options.isActive));
+        }
+        if (options.category) products = products.filter((p) => p.category === options.category);
+        products.sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
+        callback(products);
+      }, (err2) => console.error("Products fallback listener failed:", err2));
+      return;
+    }
     console.error("Error in products listener:", error);
   });
+
+  return () => unsub();
+}
+
+export async function getFeaturedProducts(limitCount = 4) {
+  try {
+    const q = query(
+      collection(db, "products"),
+      where("isActive", "==", true),
+      where("isFeatured", "==", true),
+      orderBy("createdAt", "desc"),
+      limit(limitCount)
+    );
+    const snapshot = await getDocs(q);
+    const featured = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+    if (featured.length > 0) return featured;
+  } catch (error) {
+    console.warn("Featured products query failed, using fallback:", error.message);
+  }
+  const all = await getProducts({ isActive: true, limitCount: Math.max(limitCount * 3, 12) });
+  const featured = all.filter((p) => p.isFeatured === true || p.isFeatured === "true");
+  if (featured.length > 0) return featured.slice(0, limitCount);
+  return all.slice(0, limitCount);
 }
 
 export async function getProductById(id) {
@@ -419,23 +455,51 @@ export async function getReviews(productId) {
     }
   }
 
+async function updateProductRatingStats(productId) {
+  if (!productId) return;
+  try {
+    const reviews = await getReviews(productId);
+    const approved = reviews.filter((r) => r.isApproved !== false);
+    const count = approved.length;
+    const avgRating = count > 0
+      ? approved.reduce((s, r) => s + (r.rating || 5), 0) / count
+      : 0;
+    await updateDoc(doc(db, "products", productId), {
+      avgRating: count > 0 ? Math.round(avgRating * 10) / 10 : 0,
+      reviewCount: count,
+      updatedAt: serverTimestamp(),
+    });
+    invalidateProductsCache();
+    invalidateProductSearchCache();
+  } catch (error) {
+    console.error("Error updating product rating stats:", error);
+  }
+}
+
 export async function saveReview(id, data) {
   try {
     const reviewRef = id ? doc(db, "reviews", id) : null;
     const reviewData = {
       ...data,
-      updatedAt: serverTimestamp()
+      updatedAt: serverTimestamp(),
     };
+    let productId = data.productId;
     if (reviewRef) {
+      if (!productId) {
+        const existing = await getDoc(reviewRef);
+        if (existing.exists()) productId = existing.data().productId;
+      }
       await updateDoc(reviewRef, reviewData);
-      return id;
     } else {
       const newRef = await addDoc(collection(db, "reviews"), {
         ...reviewData,
-        createdAt: serverTimestamp()
+        isApproved: data.isApproved === true,
+        createdAt: serverTimestamp(),
       });
-      return newRef.id;
+      id = newRef.id;
     }
+    if (productId) await updateProductRatingStats(productId);
+    return id;
   } catch (error) {
     console.error("Error saving review:", error);
     throw error;
@@ -507,7 +571,11 @@ export async function deletePage(id) {
 
 export async function deleteReview(id) {
   try {
-    await deleteDoc(doc(db, "reviews", id));
+    const reviewRef = doc(db, "reviews", id);
+    const reviewSnap = await getDoc(reviewRef);
+    const productId = reviewSnap.exists() ? reviewSnap.data().productId : null;
+    await deleteDoc(reviewRef);
+    if (productId) await updateProductRatingStats(productId);
   } catch (error) {
     console.error("Error deleting review:", error);
     throw error;
@@ -979,47 +1047,87 @@ export async function saveCoupon(id, data) {
 
 export async function getNextOrderNumber() {
   const counterRef = doc(db, "config", "orderCounter");
-  try {
-    const result = await runTransaction(db, async (transaction) => {
-      const snapshot = await transaction.get(counterRef);
-      let nextVal = 1;
-      if (snapshot.exists()) {
-        nextVal = (snapshot.data().value || 0) + 1;
+  const maxRetries = 3;
+  let lastError;
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await runTransaction(db, async (transaction) => {
+        const snapshot = await transaction.get(counterRef);
+        let nextVal = 1;
+        if (snapshot.exists()) {
+          nextVal = (snapshot.data().value || 0) + 1;
+        }
+        transaction.set(counterRef, { value: nextVal }, { merge: true });
+        return nextVal;
+      });
+    } catch (error) {
+      lastError = error;
+      if (attempt < maxRetries - 1) {
+        await new Promise((r) => setTimeout(r, 100 * (attempt + 1)));
       }
-      transaction.set(counterRef, { value: nextVal }, { merge: true });
-      return nextVal;
-    });
-    return result;
-  } catch (error) {
-    console.error("Error getting next order number:", error);
-    const fallback = Date.now();
-    return fallback;
+    }
   }
+  console.error("Error getting next order number:", lastError);
+  throw lastError;
 }
 
 export async function saveOrder(id, data) {
   try {
-    const docRef = id ? doc(db, "orders", id) : null;
-    
-    // Ensure customerEmail exists at top level for easier querying
-    const docData = { 
-      ...data, 
+    const docData = {
+      ...data,
       customerEmail: data.customerEmail || data.customer?.email || "",
-      updatedAt: serverTimestamp() 
+      updatedAt: serverTimestamp(),
     };
-    
-    if (docRef) {
-      await updateDoc(docRef, docData);
+
+    if (id) {
+      await updateDoc(doc(db, "orders", id), docData);
       return { id };
-    } else {
-      const orderNumber = await getNextOrderNumber();
-      const newRef = await addDoc(collection(db, "orders"), { 
-        ...docData, 
-        orderNumber,
-        createdAt: serverTimestamp() 
-      });
-      return { id: newRef.id, orderNumber };
     }
+
+    const result = await runTransaction(db, async (transaction) => {
+      const items = data.items || [];
+      const stockUpdates = [];
+
+      for (const item of items) {
+        if (!item.productId) continue;
+        const productRef = doc(db, "products", item.productId);
+        const productSnap = await transaction.get(productRef);
+        if (!productSnap.exists()) {
+          throw new Error(`Producto no encontrado: ${item.name || item.productId}`);
+        }
+        const currentStock = Number(productSnap.data().stock) || 0;
+        const qty = Number(item.quantity) || 1;
+        if (currentStock < qty) {
+          throw new Error(`Stock insuficiente para "${item.name}". Disponible: ${currentStock}`);
+        }
+        stockUpdates.push({ productRef, newStock: currentStock - qty });
+      }
+
+      const counterRef = doc(db, "config", "orderCounter");
+      const counterSnap = await transaction.get(counterRef);
+      let orderNumber = 1;
+      if (counterSnap.exists()) {
+        orderNumber = (counterSnap.data().value || 0) + 1;
+      }
+      transaction.set(counterRef, { value: orderNumber }, { merge: true });
+
+      for (const { productRef, newStock } of stockUpdates) {
+        transaction.update(productRef, { stock: newStock, updatedAt: serverTimestamp() });
+      }
+
+      const orderRef = doc(collection(db, "orders"));
+      transaction.set(orderRef, {
+        ...docData,
+        orderNumber,
+        createdAt: serverTimestamp(),
+      });
+
+      return { id: orderRef.id, orderNumber };
+    });
+
+    invalidateProductsCache();
+    invalidateProductSearchCache();
+    return result;
   } catch (error) {
     console.error("Error saving order:", error);
     throw error;

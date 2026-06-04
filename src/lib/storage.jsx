@@ -133,7 +133,7 @@ export async function deleteFile(url) {
   try {
     const storageRef = ref(storage, url);
     await deleteObject(storageRef);
-    console.log("File deleted from Storage:", url);
+    console.log("File deleted from Storage");
   } catch (error) {
     if (error.code === 'storage/object-not-found') {
       console.warn("File already deleted or not found in Storage:", url);

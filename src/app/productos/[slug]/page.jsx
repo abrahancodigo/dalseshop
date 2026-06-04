@@ -5,6 +5,7 @@ import ProductCard from "@/components/store/ProductCard";
 import StoreHeader from "@/components/store/Header";
 import StoreFooter from "@/components/store/Footer";
 import { formatPrice } from "@/lib/format";
+import { sanitizeHtml, formatDescription } from "@/lib/sanitize";
 import { getProductBySlug, getReviews, saveReview, getRelatedProducts } from "@/lib/firestore";
 import { useStore } from "@/context/StoreContext";
 import { useCart } from "@/context/CartContext";
@@ -38,6 +39,7 @@ export default function ProductDetailPage() {
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewForm, setReviewForm] = useState({ name: "", email: "", rating: 5, comment: "" });
+  const [hoverRating, setHoverRating] = useState(0);
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
   const [relatedProducts, setRelatedProducts] = useState([]);
@@ -58,7 +60,6 @@ const loadProduct = async () => {
         setProduct(p);
         try {
           const r = await getReviews(p.id);
-          console.log("Reviews loaded:", r.length, r);
           setReviews(r.filter((rev) => rev.isApproved !== false));
         } catch (revErr) {
           console.error("Reviews load error:", revErr);
@@ -91,13 +92,11 @@ const loadProduct = async () => {
     if (!reviewForm.name || !reviewForm.comment) return;
     setSubmittingReview(true);
     try {
-await saveReview(null, {
-          ...reviewForm,
-          productId: product.id,
-          productName: product.name,
-          // New reviews are auto‑approved so they appear instantly
-          isApproved: true,
-        });
+      await saveReview(null, {
+        ...reviewForm,
+        productId: product.id,
+        productName: product.name,
+      });
       setReviewSubmitted(true);
       setShowReviewForm(false);
       setReviewForm({ name: "", email: "", rating: 5, comment: "" });
@@ -227,9 +226,10 @@ await saveReview(null, {
                   </div>
 
                   {product.description && (
-                    <div className={styles.description}>
-                      <p>{product.description}</p>
-                    </div>
+                    <div
+                      className={styles.description}
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(formatDescription(product.description)) }}
+                    />
                   )}
 
                   {product.stock > 0 && (
@@ -324,11 +324,31 @@ await saveReview(null, {
                       </div>
                       <div className="form-group">
                         <label className="form-label">Calificación</label>
-                        <div className={styles.starPicker}>
-                          {[1, 2, 3, 4, 5].map((n) => (
-                            <button key={n} type="button" className={`${styles.starBtn} ${n <= reviewForm.rating ? styles.starActive : ""}`} onClick={() => setReviewForm(p => ({ ...p, rating: n }))}>★</button>
-                          ))}
+                        <div className={styles.starPicker}
+                          onMouseLeave={() => setHoverRating(0)}>
+                          {[1, 2, 3, 4, 5].map((n) => {
+                            const filled = n <= (hoverRating || reviewForm.rating);
+                            return (
+                              <button
+                                key={n}
+                                type="button"
+                                className={`${styles.starBtn} ${filled ? styles.starActive : ""} ${n <= hoverRating ? styles.starHover : ""}`}
+                                onClick={() => setReviewForm(p => ({ ...p, rating: n }))}
+                                onMouseEnter={() => setHoverRating(n)}
+                                aria-label={`${n} estrella${n !== 1 ? "s" : ""}`}
+                              >
+                                ★
+                              </button>
+                            );
+                          })}
                         </div>
+                        <span className={styles.starLabel}>
+                          {hoverRating
+                            ? `${hoverRating} de 5`
+                            : reviewForm.rating
+                              ? `${reviewForm.rating} de 5`
+                              : "Selecciona"}
+                        </span>
                       </div>
                       <div className="form-group">
                         <label className="form-label">Comentario *</label>

@@ -21,6 +21,7 @@ import styles from "./marcas.module.css";
 const emptyBrand = {
   name: "",
   logo: "",
+  bannerImage: "",
   order: 0,
 };
 
@@ -70,6 +71,7 @@ export default function MarcasPage() {
     setForm({
       name: brand.name || "",
       logo: brand.logo || "",
+      bannerImage: brand.bannerImage || "",
       order: brand.order || 0,
     });
     setShowModal(true);
@@ -253,6 +255,14 @@ export default function MarcasPage() {
                 label="Logo de la Marca"
                 value={form.logo}
                 onChange={(url) => handleChange("logo", url)}
+                onStatusChange={setIsUploading}
+                folder="brands"
+              />
+
+              <ImageUploader
+                label="Imagen de portada (aparece al filtrar por esta marca)"
+                value={form.bannerImage}
+                onChange={(url) => handleChange("bannerImage", url)}
                 onStatusChange={setIsUploading}
                 folder="brands"
               />

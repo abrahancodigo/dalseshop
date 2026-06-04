@@ -479,7 +479,7 @@ function NuevoPedidoModal({ settings, user, onClose, onSuccess }) {
       onSuccess();
     } catch (err) {
       console.error(err);
-      toast("Error al crear el pedido", "error");
+      toast(err.message?.includes("Stock") ? err.message : "Error al crear el pedido", "error");
     } finally {
       setSaving(false);
     }

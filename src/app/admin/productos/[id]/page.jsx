@@ -7,7 +7,7 @@ import { useAdminLayout } from "../../layout";
 import { useAuth } from "@/context/AuthContext";
 import { getProductById, saveProduct, getCategories, getBrands } from "@/lib/firestore";
 import { uploadImage, deleteFile } from "@/lib/storage";
-import { sanitizeHtml } from "@/lib/sanitize";
+import { sanitizeHtml, formatDescription } from "@/lib/sanitize";
 import {
   HiOutlineArrowLeft,
   HiOutlineCloudArrowUp,
@@ -62,6 +62,8 @@ export default function ProductEditorPage() {
   const [tagInput, setTagInput] = useState("");
   const [editingQueue, setEditingQueue] = useState([]);
   const [uploadingDesc, setUploadingDesc] = useState(false);
+  const [dragIndex, setDragIndex] = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
   const descFileRef = useRef(null);
 
   useEffect(() => {
@@ -202,6 +204,50 @@ export default function ProductEditorPage() {
     setEditingQueue((prev) => prev.slice(1));
   };
 
+  const moveImage = (fromIndex, toIndex) => {
+    if (fromIndex === toIndex) return;
+    setForm((prev) => {
+      const images = [...prev.images];
+      const [moved] = images.splice(fromIndex, 1);
+      images.splice(toIndex, 0, moved);
+      return { ...prev, images };
+    });
+    setSaved(false);
+  };
+
+  const handleDragStart = (index) => {
+    setDragIndex(index);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+  };
+
+  const handleDragEnter = (index) => {
+    if (index !== dragIndex) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDragLeave = (index) => {
+    if (dragOverIndex === index) {
+      setDragOverIndex(null);
+    }
+  };
+
+  const handleDrop = (index) => {
+    if (dragIndex !== null && dragIndex !== index) {
+      moveImage(dragIndex, index);
+    }
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
+
   const removeImage = async (index) => {
     const imageUrl = form.images[index];
     if (imageUrl) {
@@ -237,12 +283,9 @@ export default function ProductEditorPage() {
       return;
     }
     if (!form.name.trim()) return;
-    console.log("Saving product, form data:", form);
-    console.log("isActive value:", form.isActive, "type:", typeof form.isActive);
     setSaving(true);
     try {
       const id = await saveProduct(productId, form);
-      console.log("Product saved with ID:", id);
       setSaved(true);
       if (isNew) {
         navigate(`/admin/productos/${id}`, { replace: true });
@@ -388,7 +431,7 @@ export default function ProductEditorPage() {
                         overflow: "auto",
                       }}
                     >
-                      <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(form.description) }} />
+                      <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(formatDescription(form.description)) }} />
                     </div>
                   </details>
                 )}
@@ -403,8 +446,25 @@ export default function ProductEditorPage() {
 
               <div className={styles.imagesGrid}>
                 {form.images.map((url, index) => (
-                  <div key={index} className={styles.imageItem}>
+                  <div
+                    key={index}
+                    className={`${styles.imageItem} ${
+                      dragIndex === index ? styles.imageItemDragging : ""
+                    } ${
+                      dragOverIndex === index ? styles.imageItemDragOver : ""
+                    }`}
+                    draggable
+                    onDragStart={() => handleDragStart(index)}
+                    onDragOver={handleDragOver}
+                    onDragEnter={() => handleDragEnter(index)}
+                    onDragLeave={() => handleDragLeave(index)}
+                    onDrop={() => handleDrop(index)}
+                    onDragEnd={handleDragEnd}
+                  >
                     <img src={url} alt={`Imagen ${index + 1}`} />
+                    <span className={styles.imageDragHandle}>
+                      <HiOutlineQueueList />
+                    </span>
                     <button
                       className={styles.imageRemoveBtn}
                       onClick={() => removeImage(index)}

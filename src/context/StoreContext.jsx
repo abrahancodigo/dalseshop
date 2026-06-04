@@ -2,15 +2,15 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import {
-  onStoreSettingsChange,
-  onStoreThemeChange,
-  onStoreFeaturesChange,
-  onStoreNavigationChange,
-  onBrandsChange,
+  getStoreSettings,
+  getStoreTheme,
+  getStoreFeatures,
+  getStoreNavigation,
+  getBrands,
   getCategories,
 } from "@/lib/firestore";
 
-const StoreContext = createContext({});
+const StoreContext = createContext(null);
 
 const defaultSettings = {
   name: "Mi Tienda",
@@ -112,54 +112,55 @@ export function StoreProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let unsubSettings = () => {};
-    let unsubTheme = () => {};
-    let unsubFeatures = () => {};
-    let unsubNavigation = () => {};
-    let unsubBrands = () => {};
+    let cancelled = false;
 
-    try {
-      // Listen to realtime changes for config documents (single doc = cheap)
-      unsubSettings = onStoreSettingsChange((data) => {
-        if (data) setSettings({ ...defaultSettings, ...data });
-        setLoading(false);
-      });
+    (async () => {
+      try {
+        const [
+          settingsData,
+          themeData,
+          featuresData,
+          navigationData,
+          brandsData,
+          categoriesData,
+        ] = await Promise.all([
+          getStoreSettings(),
+          getStoreTheme(),
+          getStoreFeatures(),
+          getStoreNavigation(),
+          getBrands(),
+          getCategories(),
+        ]);
 
-      unsubTheme = onStoreThemeChange((data) => {
-        if (data) setTheme({ ...defaultTheme, ...data });
-      });
+        if (cancelled) return;
 
-      unsubFeatures = onStoreFeaturesChange((data) => {
-        if (data) setFeatures({ ...defaultFeatures, ...data });
-      });
+        if (settingsData && Object.keys(settingsData).length > 0) {
+          setSettings({ ...defaultSettings, ...settingsData });
+        }
+        if (themeData && Object.keys(themeData).length > 0) {
+          setTheme({ ...defaultTheme, ...themeData });
+        }
+        if (featuresData && Object.keys(featuresData).length > 0) {
+          setFeatures({ ...defaultFeatures, ...featuresData });
+        }
+        if (navigationData && Object.keys(navigationData).length > 0) {
+          setNavigation({ ...defaultNavigation, ...navigationData });
+        }
+        setBrands(brandsData || []);
+        setCategories(categoriesData || []);
+      } catch (err) {
+        console.warn("Error loading store config:", err.message);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
 
-      unsubNavigation = onStoreNavigationChange((data) => {
-        if (data) setNavigation({ ...defaultNavigation, ...data });
-      });
-
-      // Brands realtime listener — nuevas marcas aparecen automáticamente
-      unsubBrands = onBrandsChange((data) => {
-        setBrands(data);
-      });
-
-      // Categories: one-shot fetch (rarely change, small collection)
-      getCategories().then(setCategories).catch(() => {});
-    } catch (err) {
-      console.warn("Error setting up store listeners:", err.message);
-      setLoading(false);
-    }
-
-    // Safety timeout - ensure loading completes even if Firestore is unreachable
     const timeout = setTimeout(() => {
-      setLoading(false);
+      if (!cancelled) setLoading(false);
     }, 5000);
 
     return () => {
-      unsubSettings();
-      unsubTheme();
-      unsubFeatures();
-      unsubNavigation();
-      unsubBrands();
+      cancelled = true;
       clearTimeout(timeout);
     };
   }, []);

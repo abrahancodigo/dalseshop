@@ -1,37 +1,17 @@
 "use client";
 
 import { Link } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { useImage } from "@/context/ImageContext";
 import { useStore } from "@/context/StoreContext";
-import { getReviews } from "@/lib/firestore";
 import { formatPrice } from "@/lib/format";
 import styles from "./ProductCard.module.css";
 import { HiOutlineShoppingCart } from "react-icons/hi2";
 
 export default function ProductCard({ product, onAddToCart }) {
-  const { openImage } = useImage();
-  const { brands, features } = useStore();
+  const { features } = useStore();
   const showPrices = features.showPrices !== false;
   const hasDiscount = showPrices && product.comparePrice > 0 && product.comparePrice > product.price;
-  const [rating, setRating] = useState(null);
-  useEffect(() => {
-    if (!product.id) return;
-    let cancelled = false;
-    getReviews(product.id)
-      .then((revs) => {
-        if (cancelled) return;
-        const approved = revs.filter(r => r.isApproved !== false);
-        if (approved.length) {
-          const avg = approved.reduce((s, r) => s + (r.rating || 5), 0) / approved.length;
-          setRating(avg);
-        }
-      })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [product.id]);
-
-  const brandName = brands.find(b => b.id === product.brand)?.name;
+  const rating = product.avgRating != null ? Number(product.avgRating) : null;
+  const showRating = rating != null && (product.reviewCount ?? 0) > 0;
 
   const discountPercent = hasDiscount
     ? Math.round(((product.comparePrice - product.price) / product.comparePrice) * 100)
@@ -60,13 +40,15 @@ export default function ProductCard({ product, onAddToCart }) {
           {product.name}
         </Link>
 
-        <div className={styles.rating}>
-          {[...Array(5)].map((_, i) => (
-            <span key={i} className={i < Math.round(rating ?? 0) ? styles.filledStar : styles.star}>
-              {i < Math.round(rating ?? 0) ? "★" : "☆"}
-            </span>
-          ))}
-        </div>
+        {showRating && (
+          <div className={styles.rating}>
+            {[...Array(5)].map((_, i) => (
+              <span key={i} className={i < Math.round(rating) ? styles.filledStar : styles.star}>
+                {i < Math.round(rating) ? "★" : "☆"}
+              </span>
+            ))}
+          </div>
+        )}
 
         <div className={styles.priceRow}>
           {showPrices ? (

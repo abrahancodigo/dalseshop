@@ -27,6 +27,54 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  pointer-events: none;
+}
+
+.imageItem {
+  cursor: grab;
+}
+
+.imageItem:active {
+  cursor: grabbing;
+}
+
+.imageItemDragging {
+  opacity: 0.4;
+  border-color: var(--admin-accent, #6C5CE7);
+  border-style: dashed;
+}
+
+.imageItemDragOver {
+  border-color: var(--admin-accent, #6C5CE7);
+  border-width: 3px;
+  box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.2);
+  transform: scale(1.05);
+}
+
+.imageDragHandle {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.5);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  cursor: grab;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.imageItem:hover .imageDragHandle {
+  opacity: 1;
+}
+
+.imageDragHandle:active {
+  cursor: grabbing;
 }
 
 .imageRemoveBtn {

@@ -8,7 +8,7 @@ import Sidebar from "@/components/admin/Sidebar";
 import { ROUTE_PERMISSIONS, hasPermission } from "@/lib/permissions";
 import styles from "./admin.module.css";
 
-const AdminLayoutContext = createContext({});
+const AdminLayoutContext = createContext(null);
 
 export function useAdminLayout() {
   return useContext(AdminLayoutContext);
@@ -46,7 +46,9 @@ export default function AdminLayout() {
       return;
     }
     if (permissions) {
-      const routeKey = Object.keys(ROUTE_PERMISSIONS).find((r) => pathname.startsWith(r));
+      const routeKey = Object.keys(ROUTE_PERMISSIONS)
+        .sort((a, b) => b.length - a.length)
+        .find((r) => pathname.startsWith(r));
       if (routeKey) {
         const needed = ROUTE_PERMISSIONS[routeKey];
         if (!hasPermission(permissions, needed)) {

@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState } from "react";
 
-const ImageContext = createContext({});
+const ImageContext = createContext(null);
 
 export function ImageProvider({ children }) {
   const [imageSrc, setImageSrc] = useState(null);

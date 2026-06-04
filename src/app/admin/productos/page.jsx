@@ -38,8 +38,7 @@ export default function ProductosPage() {
   const loadData = async () => {
     try {
       const [prods, cats] = await Promise.all([getProducts(), getCategories()]);
-      console.log("Admin productos loaded:", prods.length, "products");
-       setProducts(prods);
+      setProducts(prods);
        setCategories(cats);
        await loadRatings(prods);
     } catch (err) {

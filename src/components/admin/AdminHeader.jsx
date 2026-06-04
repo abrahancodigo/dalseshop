@@ -28,10 +28,7 @@ export default function AdminHeader({ title, subtitle, onMenuToggle }) {
       </div>
 
       <div className={styles.right}>
-        <button className={styles.iconBtn} onClick={() => {
-          console.log("AdminHeader: Theme toggle clicked. Current:", theme);
-          toggleTheme();
-        }} title={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}>
+        <button className={styles.iconBtn} onClick={toggleTheme} title={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}>
           {theme === "dark" ? <HiOutlineSun /> : <HiOutlineMoon />}
         </button>
 

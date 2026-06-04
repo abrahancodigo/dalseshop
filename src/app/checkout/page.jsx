@@ -135,33 +135,18 @@ export default function CheckoutPage() {
           console.error("Error al generar PDF de factura:", pdfErr);
         }
 
-        // Read fresh settings from Firestore to ensure notifications are up to date
         const freshSettings = settings;
 
-        console.log("Checkout: notifications:", JSON.stringify(freshSettings?.notifications));
-
         try {
-          console.log("Calling sendOrderEmail function...");
-          console.log("Payload:", JSON.stringify({
-            orderId: orderData.id,
-            customerEmail: orderData.customer?.email,
-            notifications: freshSettings?.notifications,
-            hasPdf: !!pdfBase64,
-          }));
-
           const sendOrderEmail = httpsCallable(functions, "sendOrderEmail");
-          const result = await sendOrderEmail({
+          await sendOrderEmail({
             order: { ...orderData, id },
             storeSettings: freshSettings,
             pdfBase64: pdfBase64 || "",
             showPrices: showPricesVal,
           });
-          console.log("Email sent successfully to:", result.data.recipients);
         } catch (callErr) {
           console.error("Email function failed:", callErr);
-          console.error("Error code:", callErr.code);
-          console.error("Error message:", callErr.message);
-          console.error("Error details:", callErr.details);
         }
       } catch (mailErr) {
         console.error("Error in email process:", mailErr);
@@ -169,7 +154,11 @@ export default function CheckoutPage() {
 
       clearCart();
       setStep("success");
-    } catch (err) { console.error(err); alert("Error al procesar el pedido."); }
+    } catch (err) {
+      console.error(err);
+      const msg = err.message?.includes("Stock") ? err.message : "Error al procesar el pedido.";
+      alert(msg);
+    }
     finally { setSaving(false); }
   };
 

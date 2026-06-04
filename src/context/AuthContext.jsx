@@ -12,10 +12,10 @@ import {
   sendPasswordResetEmail,
 } from "firebase/auth";
 import { auth, googleProvider, SUPER_ADMIN_EMAIL } from "@/lib/firebase";
-import { getUserByEmail, saveUser, onUserByEmail } from "@/lib/firestore";
+import { getUserByEmail, saveUser } from "@/lib/firestore";
 import { ROLE_PERMISSIONS, hasPermission, canManage } from "@/lib/permissions";
 
-const AuthContext = createContext({});
+const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -109,7 +109,7 @@ export function AuthProvider({ children }) {
       try {
         const result = await getRedirectResult(auth);
         if (result) {
-          console.log("Redirect login successful:", result.user.email);
+          console.log("Redirect login successful for:", result.user.email);
         }
       } catch (err) {
         console.error("Redirect login error:", err);

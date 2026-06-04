@@ -122,11 +122,23 @@ export default function LoginPage() {
   return (
     <div className={styles.container}>
       <div className={styles.bgDecoration}>
-        <div className={styles.bgOrb1} />
-        <div className={styles.bgOrb2} />
-        <div className={styles.bgOrb3} />
+        <div className={styles.mesh1} />
+        <div className={styles.mesh2} />
+        <div className={styles.mesh3} />
+        <div className={styles.ring1} />
+        <div className={styles.ring2} />
+        <div className={styles.ring3} />
+        <div className={styles.particle1} />
+        <div className={styles.particle2} />
+        <div className={styles.particle3} />
+        <div className={styles.particle4} />
+        <div className={styles.particle5} />
+        <div className={styles.particle6} />
+        <div className={styles.particle7} />
+        <div className={styles.particle8} />
       </div>
 
+      <div className={styles.cardGlow} />
       <div className={styles.card}>
         <div className={styles.logoWrapper}>
           {settings.logo ? (

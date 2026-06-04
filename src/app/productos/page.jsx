@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo, useRef } from "react";
 import StoreHeader from "@/components/store/Header";
 import StoreFooter from "@/components/store/Footer";
 import ProductCard from "@/components/store/ProductCard";
-import { onProductsChange } from "@/lib/firestore";
+import { getProducts } from "@/lib/firestore";
 import { useCart } from "@/context/CartContext";
 import { useStore } from "@/context/StoreContext";
 import { formatPrice } from "@/lib/format";
@@ -45,13 +45,18 @@ export default function ProductosPage() {
   const categories = useMemo(() => allCategories.filter(c => c.isActive), [allCategories]);
 
   useEffect(() => {
-    const unsubProds = onProductsChange({ isActive: true }, (prods) => {
-      setProducts(prods);
-      setLoading(false);
-    });
-    return () => {
-      unsubProds();
-    };
+    let cancelled = false;
+    (async () => {
+      try {
+        const prods = await getProducts({ isActive: true });
+        if (!cancelled) setProducts(prods);
+      } catch (err) {
+        console.error("Error loading products:", err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
@@ -166,6 +171,18 @@ export default function ProductosPage() {
       <StoreHeader />
 
       <main className={styles.main}>
+        {/* Brand banner — full width, outside container */}
+        {selectedBrands.length === 1 && (() => {
+          const brand = brands.find(b => b.id === selectedBrands[0]);
+          if (!brand || !brand.bannerImage) return null;
+          return (
+            <div className={styles.brandBanner}>
+              <img src={brand.bannerImage} alt="" className={styles.brandBannerBlur} aria-hidden="true" />
+              <img src={brand.bannerImage} alt={brand.name} className={styles.brandBannerBg} />
+            </div>
+          );
+        })()}
+
         <div className="container">
           <div className={styles.pageHeader}>
             <h1 className={styles.pageTitle}>Nuestros Productos</h1>

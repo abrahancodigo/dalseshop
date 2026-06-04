@@ -401,6 +401,58 @@
   margin-bottom: 1.25rem;
 }
 
+/* ── Brand Banner (full width, max 300px, blurred background) ── */
+.brandBanner {
+  position: relative;
+  width: 100%;
+  min-height: 80px;
+  max-height: 300px;
+  overflow: hidden;
+  background: #0a0a0f;
+  margin-bottom: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brandBannerBlur {
+  position: absolute;
+  inset: -40px;
+  width: calc(100% + 80px);
+  height: calc(100% + 80px);
+  object-fit: cover;
+  filter: blur(30px);
+  opacity: 0.6;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.brandBannerBg {
+  position: relative;
+  z-index: 1;
+  max-width: 100%;
+  max-height: 300px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: block;
+}
+
+@media (max-width: 640px) {
+  .brandBanner {
+    max-height: 180px;
+    margin-bottom: 1.5rem;
+  }
+  .brandBannerBlur {
+    inset: -20px;
+    width: calc(100% + 40px);
+    height: calc(100% + 40px);
+  }
+  .brandBannerBg {
+    max-height: 180px;
+  }
+}
+
 /* ── Responsive ── */
 @media (max-width: 1024px) {
   .sidebar {
