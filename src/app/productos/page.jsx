@@ -154,6 +154,34 @@ export default function ProductosPage() {
     );
   };
 
+  const priceRangeValue = useMemo(() => {
+    if (priceMin === 0 && priceMax === maxPrice) return "";
+    if (priceMin === 0 && priceMax === 50) return "0-50";
+    if (priceMin === 50 && priceMax === 100) return "50-100";
+    if (priceMin === 100 && priceMax === 200) return "100-200";
+    if (priceMin === 200 && priceMax === maxPrice) return `200-${maxPrice}`;
+    return "";
+  }, [priceMin, priceMax, maxPrice]);
+
+  const handlePriceChange = (val) => {
+    if (!val) {
+      setPriceMin(0);
+      setPriceMax(maxPrice);
+    } else {
+      const [min, max] = val.split("-").map(Number);
+      setPriceMin(min);
+      setPriceMax(max || maxPrice);
+    }
+  };
+
+  const handleBrandChange = (val) => {
+    setSelectedBrands(val ? [val] : []);
+  };
+
+  const handleCategoryChange = (val) => {
+    setSelectedCategories(val ? [val] : []);
+  };
+
   const loadMore = () => {
     setDisplayedCount((prev) => prev + LOAD_MORE_COUNT);
   };
@@ -183,39 +211,73 @@ export default function ProductosPage() {
           );
         })()}
 
-        <div className="container">
-          <div className={styles.pageHeader}>
-            <h1 className={styles.pageTitle}>Nuestros Productos</h1>
-            <p className={styles.pageSubtitle}>
-              Explora nuestra colección de productos
-            </p>
-          </div>
+          <div className="container">
 
-          <div className={`glass-panel ${styles.topBar}`}>
+          <div className={styles.topBar}>
             <div className={styles.searchBox}>
               <HiOutlineMagnifyingGlass className={styles.searchIcon} />
               <input
                 type="text"
-                placeholder="Buscar productos..."
+                placeholder="Buscar..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className={styles.searchInput}
               />
             </div>
 
-            <div className={styles.topBarRight}>
+            <div className={styles.filtersRow}>
+              {brands && brands.length > 0 && (
+                <select
+                  className={styles.filterSelect}
+                  value={selectedBrands.length === 1 ? selectedBrands[0] : ""}
+                  onChange={(e) => handleBrandChange(e.target.value)}
+                >
+                  <option value="">Marcas</option>
+                  {brands.map((b) => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </select>
+              )}
+
               <select
-                className={styles.sortSelect}
+                className={styles.filterSelect}
+                value={selectedCategories.length === 1 ? selectedCategories[0] : ""}
+                onChange={(e) => handleCategoryChange(e.target.value)}
+              >
+                <option value="">Categorías</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+
+              {showPrices && (
+                <select
+                  className={styles.filterSelect}
+                  value={priceRangeValue}
+                  onChange={(e) => handlePriceChange(e.target.value)}
+                >
+                  <option value="">Precios</option>
+                  <option value="0-50">$0 - $50</option>
+                  <option value="50-100">$50 - $100</option>
+                  <option value="100-200">$100 - $200</option>
+                  <option value={`200-${maxPrice}`}>$200+</option>
+                </select>
+              )}
+
+              <select
+                className={styles.filterSelect}
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
               >
                 <option value="relevance">Más relevantes</option>
-                <option value="price-asc">Precio: menor a mayor</option>
-                <option value="price-desc">Precio: mayor a menor</option>
-                <option value="name">Nombre A-Z</option>
+                <option value="price-asc">Menor precio</option>
+                <option value="price-desc">Mayor precio</option>
+                <option value="name">A-Z</option>
                 <option value="newest">Novedades</option>
               </select>
+            </div>
 
+            <div className={styles.topBarRight}>
               <span className={styles.resultCount}>
                 {filtered.length} producto{filtered.length !== 1 ? "s" : ""}
               </span>
@@ -229,119 +291,6 @@ export default function ProductosPage() {
           </div>
 
           <div className={styles.layout}>
-            <aside className={styles.sidebar}>
-              <div className={styles.sidebarHeader}>
-                <span className={styles.sidebarTitle}>Filtros</span>
-              </div>
-
-              <div className={styles.sidebarContent}>
-                {brands && brands.length > 0 && (
-                  <div className={styles.filterBlock}>
-                    <span className={styles.filterBlockTitle}>Marca</span>
-                    <div className={styles.checkboxGroup}>
-                      {brands.map((brand) => (
-                        <label key={brand.id} className={styles.checkboxLabel}>
-                          <input
-                            type="checkbox"
-                            checked={selectedBrands.includes(brand.id)}
-                            onChange={() => toggleBrand(brand.id)}
-                            className={styles.checkboxInput}
-                          />
-                          <span className={styles.checkboxBox}>
-                            <svg viewBox="0 0 12 12" className={styles.checkIcon}>
-                              <path d="M1 6l3 3 7-7" />
-                            </svg>
-                          </span>
-                          <span className={styles.checkboxText}>{brand.name}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div className={styles.filterBlock}>
-                  <span className={styles.filterBlockTitle}>Categoría</span>
-                  <div className={styles.checkboxGroup}>
-                    {categories.length === 0 ? (
-                      <span className={styles.filterEmpty}>Sin categorías</span>
-                    ) : (
-                      categories.map((cat) => (
-                        <label key={cat.id} className={styles.checkboxLabel}>
-                          <input
-                            type="checkbox"
-                            checked={selectedCategories.includes(cat.id)}
-                            onChange={() => toggleCategory(cat.id)}
-                            className={styles.checkboxInput}
-                          />
-                          <span className={styles.checkboxBox}>
-                            <svg viewBox="0 0 12 12" className={styles.checkIcon}>
-                              <path d="M1 6l3 3 7-7" />
-                            </svg>
-                          </span>
-                          <span className={styles.checkboxText}>{cat.name}</span>
-                        </label>
-                      ))
-                    )}
-                  </div>
-                </div>
-
-                {showPrices && (
-                <div className={styles.filterBlock}>
-                  <span className={styles.filterBlockTitle}>Precio</span>
-                  <div className={styles.priceSlider}>
-                    <input
-                      type="range"
-                      min={0}
-                      max={maxPrice}
-                      step={1}
-                      value={priceMin}
-                      onChange={(e) =>
-                        setPriceMin(Math.min(Number(e.target.value), priceMax - 1))
-                      }
-                      className={styles.rangeInput}
-                      style={{ zIndex: priceMin > maxPrice / 2 ? 5 : 3 }}
-                    />
-                    <input
-                      type="range"
-                      min={0}
-                      max={maxPrice}
-                      step={1}
-                      value={priceMax}
-                      onChange={(e) =>
-                        setPriceMax(Math.max(Number(e.target.value), priceMin + 1))
-                      }
-                      className={styles.rangeInput}
-                      style={{ zIndex: priceMax > maxPrice / 2 ? 3 : 5 }}
-                    />
-                    <div className={styles.sliderTrack}>
-                      <div
-                        className={styles.sliderRange}
-                        style={{
-                          left: `${(priceMin / maxPrice) * 100}%`,
-                          width: `${((priceMax - priceMin) / maxPrice) * 100}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                  <div className={styles.priceValues}>
-                    <span>${formatPrice(priceMin)}</span>
-                    <span>${formatPrice(priceMax)}</span>
-                  </div>
-                </div>
-                )}
-
-                {activeFilterCount > 0 && (
-                  <button
-                    className={styles.sidebarClearBtn}
-                    onClick={clearFilters}
-                  >
-                    <HiOutlineXMark size={16} /> Limpiar todos los filtros
-                  </button>
-                )}
-              </div>
-            </aside>
-
-            <div className={styles.gridWrapper}>
               {loading ? (
                 <div className="loading-screen" style={{ minHeight: 300 }}>
                   <div className="spinner" />
@@ -387,7 +336,6 @@ export default function ProductosPage() {
                   )}
                 </>
               )}
-            </div>
           </div>
         </div>
       </main>

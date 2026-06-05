@@ -23,15 +23,15 @@ export default function CookieConsent() {
   if (!isVisible) return null;
 
   return (
-    <div className={styles.bar}>
+    <div className={styles.bar} role="status" aria-live="polite">
       <p className={styles.text}>
-        Este sitio usa cookies.{" "}
+        Usamos cookies{" "}
         <Link to="/terminos-y-condiciones" className={styles.link}>
-          Más info
+          info
         </Link>
       </p>
       <button onClick={handleAccept} className={styles.btn}>
-        Aceptar
+        ok
       </button>
     </div>
   );
