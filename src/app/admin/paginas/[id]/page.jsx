@@ -6,7 +6,7 @@ import AdminHeader from "@/components/admin/AdminHeader";
 import ImageUploader from "@/components/admin/ImageUploader";
 import { useAdminLayout } from "../../layout";
 import { useAuth } from "@/context/AuthContext";
-import { getPageById, savePage, getCategories } from "@/lib/firestore";
+import { getPageById, savePage, getCategories, getBrands } from "@/lib/firestore";
 import {
   HiOutlineArrowLeft,
   HiOutlinePlusCircle,
@@ -50,7 +50,7 @@ const SECTION_TYPES = [
 const DEFAULT_SECTION_CONFIG = {
   hero: { slides: [], transition: "fade", autoplaySpeed: 5, overlayOpacity: 40, height: "500", title: "", subtitle: "", buttonText: "", buttonLink: "", image: "", clickable: false },
   featuredProducts: { title: "Productos Destacados", count: 4, columns: 4 },
-  productGrid: { title: "Nuestros Productos", category: "", count: 8, columns: 4 },
+  productGrid: { title: "Nuestros Productos", category: "", brand: "", count: 8, columns: 4, productCodes: [] },
   textBlock: { title: "", content: "", alignment: "center", backgroundColor: "" },
   imageGallery: { title: "", images: [], columns: 3 },
   testimonials: { title: "Lo que dicen nuestros clientes", items: [{ name: "", text: "", rating: 5 }] },
@@ -424,9 +424,11 @@ export default function PageEditorPage() {
 function SectionConfigEditor({ section, onUpdate }) {
   const { type, config } = section;
   const [categories, setCategories] = useState([]);
+  const [brands, setBrands] = useState([]);
 
   useEffect(() => {
     getCategories().then(setCategories).catch(() => {});
+    getBrands().then(setBrands).catch(() => {});
   }, []);
 
   const handleChange = (field, value) => onUpdate({ [field]: value });
@@ -563,6 +565,59 @@ function SectionConfigEditor({ section, onUpdate }) {
               ))}
             </select>
             <span className="admin-form-hint">Filtra los productos por categoría</span>
+          </div>
+          <div className="admin-form-group">
+            <label className="admin-form-label">Marca</label>
+            <select className="admin-form-select" value={config.brand || ""} onChange={(e) => handleChange("brand", e.target.value)}>
+              <option value="">Todas las marcas</option>
+              {brands.map((b) => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
+            <span className="admin-form-hint">Filtra los productos por marca</span>
+          </div>
+          <div className="admin-form-group">
+            <label className="admin-form-label">Códigos de producto (SKU / Código de barras)</label>
+            {(config.productCodes || []).map((code, idx) => (
+              <div key={idx} style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
+                <input
+                  className="admin-form-input"
+                  placeholder={`Código ${idx + 1} (ej: CAM-001 o 7501234567890)`}
+                  value={code}
+                  onChange={(e) => {
+                    const newCodes = [...(config.productCodes || [])];
+                    newCodes[idx] = e.target.value;
+                    handleChange("productCodes", newCodes);
+                  }}
+                  style={{ flex: 1 }}
+                />
+                <button
+                  type="button"
+                  className="admin-form-btn-danger"
+                  onClick={() => {
+                    const newCodes = (config.productCodes || []).filter((_, i) => i !== idx);
+                    handleChange("productCodes", newCodes);
+                  }}
+                  title="Quitar código"
+                  style={{ padding: "0.4rem 0.7rem", fontSize: "0.8rem" }}
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+            {(config.productCodes || []).length < 4 && (
+              <button
+                type="button"
+                className="admin-form-btn-secondary"
+                onClick={() => handleChange("productCodes", [...(config.productCodes || []), ""])}
+                style={{ marginTop: "0.25rem", fontSize: "0.85rem" }}
+              >
+                + Agregar código
+              </button>
+            )}
+            <span className="admin-form-hint">
+              Busca productos por SKU o código de barras (máximo 4). Si se ingresan códigos, se muestran solo esos productos.
+            </span>
           </div>
           <div className="admin-form-group">
             <label className="admin-form-label">Cantidad</label>

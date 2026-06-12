@@ -333,13 +333,15 @@ function ProductGridSection({ config }) {
     getProducts({
       isActive: true,
       category: config.category || undefined,
+      brand: config.brand || undefined,
+      productCodes: config.productCodes?.length ? config.productCodes : undefined,
       limitCount: config.count || 8,
     })
       .then(setProducts)
       .catch((err) => {
         console.error("Error fetching product grid:", err);
       });
-  }, [config.category, config.count]);
+  }, [config.category, config.brand, config.count, JSON.stringify(config.productCodes)]);
 
   if (products.length === 0) {
     return (
@@ -348,10 +350,10 @@ function ProductGridSection({ config }) {
           {config.title && <h2 className={styles.sectionTitle}>{config.title}</h2>}
           <div style={{ textAlign: "center", padding: "3rem 1.5rem", background: "var(--color-surface)", borderRadius: "var(--border-radius)", border: "1px dashed var(--color-border)" }}>
             <p style={{ color: "var(--color-muted)", marginBottom: "1rem", fontSize: "1.1rem" }}>
-              No se encontraron productos {config.category ? "en esta categoría" : ""}.
+              No se encontraron productos {(config.category || config.brand || config.productCodes?.length) ? "con los filtros seleccionados" : ""}.
             </p>
             <p style={{ fontSize: "0.875rem", maxWidth: "500px", margin: "0 auto", color: "var(--color-text)" }}>
-              Asegúrate de que tus productos estén marcados como <strong>Activos</strong> en el panel de administración y que pertenezcan a la categoría seleccionada.
+              Asegúrate de que tus productos estén marcados como <strong>Activos</strong> en el panel de administración y que coincidan con los filtros seleccionados.
             </p>
           </div>
         </div>
@@ -368,9 +370,12 @@ function ProductGridSection({ config }) {
             <ProductCard key={p.id} product={p} onAddToCart={(product) => addItem(product)} />
           ))}
         </div>
-        {config.category && (
+        {(config.category || config.brand) && (
           <div className={styles.gridFooter}>
-            <Link to={`/productos?categoria=${config.category}`} className={styles.gridFooterBtn}>
+            <Link
+              to={`/productos${config.category ? `?categoria=${config.category}` : ""}${config.brand ? `${config.category ? "&" : "?"}marca=${config.brand}` : ""}`}
+              className={styles.gridFooterBtn}
+            >
               Ver todos los productos →
             </Link>
           </div>

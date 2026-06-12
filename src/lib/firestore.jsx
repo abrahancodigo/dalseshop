@@ -238,15 +238,39 @@ export async function getProducts(options = {}) {
     return _productsCache.data;
   }
   try {
+    // If productCodes are provided, search by SKU/barcode (client-side since Firestore can't OR across fields)
+    if (options.productCodes && options.productCodes.length > 0) {
+      const codes = options.productCodes.filter(c => c && c.trim()).map(c => c.trim().toLowerCase());
+      if (codes.length > 0) {
+        const q = query(collection(db, "products"), where("isActive", "==", true));
+        const snapshot = await getDocs(q);
+        let products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // Filter by codes (match SKU or barcode)
+        products = products.filter(p => {
+          const sku = (p.sku || "").toLowerCase();
+          const barcode = (p.barcode || "").toLowerCase();
+          return codes.some(code => sku === code || barcode === code || sku.includes(code) || barcode.includes(code));
+        });
+
+        // Apply category/brand filters if also specified
+        if (options.category) products = products.filter(p => p.category === options.category);
+        if (options.brand) products = products.filter(p => p.brand === options.brand);
+
+        if (options.limitCount) products = products.slice(0, options.limitCount);
+
+        _productsCache = { data: products, ts: Date.now(), key: cacheKey };
+        return products;
+      }
+    }
+
     let q = collection(db, "products");
     let constraints = [];
     
     // We only use simple constraints that don't always require a composite index with createdAt
     if (options.isActive !== undefined) constraints.push(where("isActive", "==", options.isActive));
-    
-    // If category is provided, we try to use it in the query. 
-    // If it fails (missing index for category + createdAt), the catch block will handle it.
     if (options.category) constraints.push(where("category", "==", options.category));
+    if (options.brand) constraints.push(where("brand", "==", options.brand));
     
     const limitVal = options.limitCount ? limit(options.limitCount) : null;
     
@@ -279,6 +303,19 @@ export async function getProducts(options = {}) {
         if (options.category) {
           products = products.filter(p => p.category === options.category);
         }
+        if (options.brand) {
+          products = products.filter(p => p.brand === options.brand);
+        }
+        if (options.productCodes && options.productCodes.length > 0) {
+          const codes = options.productCodes.filter(c => c && c.trim()).map(c => c.trim().toLowerCase());
+          if (codes.length > 0) {
+            products = products.filter(p => {
+              const sku = (p.sku || "").toLowerCase();
+              const barcode = (p.barcode || "").toLowerCase();
+              return codes.some(code => sku === code || barcode === code || sku.includes(code) || barcode.includes(code));
+            });
+          }
+        }
         if (options.limitCount) {
           products = products.slice(0, options.limitCount);
         }
@@ -298,6 +335,7 @@ export function onProductsChange(options = {}, callback) {
   let constraints = [];
   if (options.isActive !== undefined) constraints.push(where("isActive", "==", options.isActive));
   if (options.category) constraints.push(where("category", "==", options.category));
+  if (options.brand) constraints.push(where("brand", "==", options.brand));
 
   const qWithConstraints = query(collection(db, "products"), ...constraints, orderBy("createdAt", "desc"));
   const mapDocs = (snapshot) => snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -314,6 +352,7 @@ export function onProductsChange(options = {}, callback) {
           products = products.filter((p) => p.isActive === options.isActive || String(p.isActive) === String(options.isActive));
         }
         if (options.category) products = products.filter((p) => p.category === options.category);
+        if (options.brand) products = products.filter((p) => p.brand === options.brand);
         products.sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
         callback(products);
       }, (err2) => console.error("Products fallback listener failed:", err2));
