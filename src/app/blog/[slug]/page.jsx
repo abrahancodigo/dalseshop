@@ -7,6 +7,7 @@ import { getBlogPostBySlug, getBlogPosts, getBlogConfig } from "@/lib/firestore"
 import { useParams, Link } from "react-router-dom";
 import { HiOutlineArrowLeft, HiOutlineCalendar, HiOutlineUser } from "react-icons/hi2";
 import { sanitizeHtml } from "@/lib/sanitize";
+import { useImage } from "@/context/ImageContext";
 import styles from "./detalle.module.css";
 
 export default function BlogPostPage() {
@@ -15,6 +16,7 @@ export default function BlogPostPage() {
   const [related, setRelated] = useState([]);
   const [loading, setLoading] = useState(true);
   const [config, setConfig] = useState({});
+  const { openImage } = useImage();
 
   useEffect(() => {
     Promise.all([
@@ -26,6 +28,22 @@ export default function BlogPostPage() {
       getBlogConfig().then(setConfig).catch(() => {}),
     ]).finally(() => setLoading(false));
   }, [slug]);
+
+  useEffect(() => {
+    const container = document.querySelector(`.${styles.content}`);
+    if (!container) return;
+    const handleClick = (e) => {
+      const img = e.target.closest("img");
+      if (img && img.src) {
+        const parentLink = img.closest("a");
+        if (parentLink && parentLink.href) return;
+        e.preventDefault();
+        openImage(img.src);
+      }
+    };
+    container.addEventListener("click", handleClick);
+    return () => container.removeEventListener("click", handleClick);
+  }, [post?.content, openImage]);
 
   const blogColors = {
     "--blog-bg": config.bgColor || "var(--color-secondary)",
@@ -98,7 +116,14 @@ export default function BlogPostPage() {
           <div className={styles.articleLayout}>
             {post.image && (
               <div className={styles.imageColumn}>
-                <div className={styles.articleImage}>
+                <div
+                  className={styles.articleImage}
+                  onClick={() => openImage(post.image)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === "Enter" && openImage(post.image)}
+                  aria-label="Ampliar imagen"
+                >
                   <img src={post.image} alt={post.title} />
                 </div>
               </div>
