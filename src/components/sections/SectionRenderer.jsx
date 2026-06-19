@@ -542,7 +542,7 @@ function FeaturedProductsSection({ config }) {
     <section className={styles.section} ref={ref}>
       <div className={`container reveal ${isVisible ? "revealed" : ""}`}>
         {config.title && <h2 className={styles.sectionTitle}>{config.title}</h2>}
-        <div className={styles.productGrid} style={{ gridTemplateColumns: `repeat(${config.columns || 4}, 1fr)` }}>
+        <div className={styles.productGrid} style={{ "--grid-cols": config.columns || 4 }}>
           {products.map((p) => (
             <ProductCard key={p.id} product={p} onAddToCart={(product) => addItem(product)} />
           ))}
@@ -596,7 +596,7 @@ function ProductGridSection({ config }) {
     <section className={styles.section} ref={ref}>
       <div className={`container reveal ${isVisible ? "revealed" : ""}`}>
         {config.title && <h2 className={styles.sectionTitle}>{config.title}</h2>}
-        <div className={styles.productGrid} style={{ gridTemplateColumns: `repeat(${config.columns || 4}, 1fr)` }}>
+        <div className={styles.productGrid} style={{ "--grid-cols": config.columns || 4 }}>
           {products.map((p) => (
             <ProductCard key={p.id} product={p} onAddToCart={(product) => addItem(product)} />
           ))}
