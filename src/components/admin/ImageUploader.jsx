@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { uploadImage } from "@/lib/storage";
+import { uploadImage, deleteFile } from "@/lib/storage";
 import { HiOutlineCloudArrowUp, HiOutlineXMark } from "react-icons/hi2";
 import ImageEditor from "./ImageEditor";
 import styles from "./ImageUploader.module.css";
@@ -40,8 +40,12 @@ export default function ImageUploader({
     setUploading(true);
     if (onStatusChange) onStatusChange(true);
     try {
+      const oldUrl = value;
       const url = await uploadImage(editedFile, folder);
       onChange(url, editedFile);
+      if (oldUrl && oldUrl !== url) {
+        deleteFile(oldUrl);
+      }
     } catch (err) {
       setError("Error al subir la imagen");
       console.error(err);
@@ -74,6 +78,9 @@ export default function ImageUploader({
   };
 
   const handleRemove = () => {
+    if (value) {
+      deleteFile(value);
+    }
     onChange("");
   };
 

@@ -152,7 +152,7 @@ const loadProduct = async () => {
                 {/* Images */}
                 <div className={styles.images}>
                   <div className={styles.mainImageWrapper}>
-                    <div className={styles.mainImage}>
+                    <div className={styles.mainImage} key={selectedImage}>
                       {product.images?.[selectedImage] ? (
                         <img
                           src={product.images[selectedImage]}
@@ -249,7 +249,7 @@ const loadProduct = async () => {
                       />
                       <button onClick={() => setQuantity(quantity + 1)}><HiOutlinePlus /></button>
                     </div>
-                    <button className={styles.addBtn} onClick={handleAddToCart}>
+                    <button className={`${styles.addBtn} ${added ? styles.addBtnSuccess : ""}`} onClick={handleAddToCart}>
                       <HiOutlineShoppingCart />
                       {added ? "✓ Agregado" : "Agregar al Carrito"}
                     </button>

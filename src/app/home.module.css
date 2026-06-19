@@ -78,6 +78,7 @@
   position: relative;
   overflow: hidden;
   min-height: calc(100vh - 64px - 60px);
+  min-height: calc(100dvh - 64px - 60px);
   background: linear-gradient(180deg, var(--color-secondary) 0%, #0a0a1a 100%);
 }
 

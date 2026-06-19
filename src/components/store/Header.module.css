@@ -122,6 +122,17 @@
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
+.cartBadgeBounce {
+  animation: badgeBounce 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes badgeBounce {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.35); }
+  70% { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+
 .menuBtn {
   display: none;
   width: 42px;
@@ -409,6 +420,7 @@
     width: calc(100% - 24px);
     max-width: 320px;
     max-height: calc(100vh - 24px);
+    max-height: calc(100dvh - 24px);
     background: rgba(var(--color-secondary-rgb, 15, 15, 15), 0.85);
     backdrop-filter: blur(25px) saturate(180%);
     -webkit-backdrop-filter: blur(25px) saturate(180%);
@@ -424,6 +436,7 @@
     transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
     box-shadow: 0 20px 50px rgba(0,0,0,0.5);
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     display: flex;
     visibility: hidden;
   }

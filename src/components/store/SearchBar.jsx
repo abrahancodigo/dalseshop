@@ -105,11 +105,12 @@ export default function SearchBar({ onResultClick, autoFocus = false }) {
               <div className={styles.resultsHeader}>
                 {results.length} resultado{results.length !== 1 ? 's' : ''} encontrado{results.length !== 1 ? 's' : ''}
               </div>
-              {results.map((product) => (
+              {results.map((product, index) => (
                 <Link
                   key={product.id}
                   to={`/productos/${product.slug}`}
                   className={styles.resultItem}
+                  style={{ animationDelay: `${index * 50}ms` }}
                   onClick={() => {
                     setIsOpen(false);
                     setQuery("");

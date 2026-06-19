@@ -161,8 +161,8 @@ export default function BlogPostPage() {
           <div className="container">
             <h2 className={styles.relatedTitle}>Artículos relacionados</h2>
             <div className={styles.relatedGrid}>
-              {related.map((r) => (
-                <Link key={r.id} to={`/blog/${r.slug}`} className={styles.relatedCard}>
+              {related.map((r, index) => (
+                <Link key={r.id} to={`/blog/${r.slug}`} className={styles.relatedCard} style={{ animationDelay: `${index * 100}ms` }}>
                   <div className={styles.relatedCardImage}>
                     {r.image ? (
                       <img src={r.image} alt={r.title} loading="lazy" />

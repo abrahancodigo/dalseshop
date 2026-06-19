@@ -5,7 +5,7 @@ import AdminHeader from "@/components/admin/AdminHeader";
 import { useAdminLayout } from "../layout";
 import { useAuth } from "@/context/AuthContext";
 import { useStore } from "@/context/StoreContext";
-import { getStoreNavigation, saveStoreNavigation } from "@/lib/firestore";
+import { saveStoreNavigation } from "@/lib/firestore";
 import { uploadImage } from "@/lib/storage";
 import { sanitizeHtml } from "@/lib/sanitize";
 import {
@@ -19,23 +19,16 @@ import styles from "./navegacion.module.css";
 export default function NavegacionPage() {
   const { toggleSidebar } = useAdminLayout();
   const { canManage } = useAuth();
-  const { defaultNavigation } = useStore();
+  const { navigation, defaultNavigation } = useStore();
   const [form, setForm] = useState(defaultNavigation);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    loadNavigation();
-  }, []);
-
-  const loadNavigation = async () => {
-    try {
-      const data = await getStoreNavigation();
-      if (data) setForm({ ...defaultNavigation, ...data });
-    } catch (err) {
-      console.error("Error:", err);
+    if (navigation && Object.keys(navigation).length > 1) {
+      setForm(navigation);
     }
-  };
+  }, [navigation]);
 
   // ─── Header Menu ───
   const addMenuItem = () => {

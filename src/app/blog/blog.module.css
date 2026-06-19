@@ -346,6 +346,12 @@
   background: var(--blog-card-bg);
   text-decoration: none;
   transition: transform var(--transition-base), border-color var(--transition-base), box-shadow var(--transition-base);
+  animation: postCardReveal 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes postCardReveal {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .postCard:hover {

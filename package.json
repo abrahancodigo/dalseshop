@@ -8,7 +8,9 @@
     "preview": "vite preview",
     "deploy": "npm run build && firebase deploy --only hosting,firestore:rules",
     "deploy:functions": "npm run build && firebase deploy",
-    "deploy:rules": "firebase deploy --only firestore:rules,storage"
+    "deploy:rules": "firebase deploy --only firestore:rules,storage",
+    "cleanup:storage": "node scripts/cleanup-storage.js",
+    "cleanup:storage:dry": "node scripts/cleanup-storage.js --dry-run"
   },
   "dependencies": {
     "@imgly/background-removal": "^1.7.0",

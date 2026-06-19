@@ -335,6 +335,12 @@
   background: var(--blog-card-bg, rgba(255,255,255,0.04));
   border: 1px solid rgba(255,255,255,0.06);
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: relatedReveal 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes relatedReveal {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .relatedCard:hover {

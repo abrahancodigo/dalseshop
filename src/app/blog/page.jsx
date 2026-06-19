@@ -237,8 +237,8 @@ export default function BlogPage() {
 
                 {listedPosts.length > 0 ? (
                   <div className={styles.postsGrid}>
-                    {listedPosts.map((post) => (
-                      <Link key={post.id} to={`/blog/${post.slug}`} className={styles.postCard}>
+                    {listedPosts.map((post, index) => (
+                      <Link key={post.id} to={`/blog/${post.slug}`} className={styles.postCard} style={{ animationDelay: `${index * 80}ms` }}>
                         <div className={styles.postCardImage}>
                           {post.image ? (
                             <img src={post.image} alt={post.title} loading="lazy" />

@@ -5,6 +5,7 @@ import AdminHeader from "@/components/admin/AdminHeader";
 import { useAdminLayout } from "../layout";
 import { useAuth } from "@/context/AuthContext";
 import { getPages, deletePage, savePage } from "@/lib/firestore";
+import { deleteFile } from "@/lib/storage";
 import { Link, useNavigate } from "react-router-dom";
 import {
   HiOutlineDocumentText,
@@ -73,6 +74,15 @@ export default function PaginasPage() {
       return;
     }
     try {
+      const page = pages.find(p => p.id === id);
+      if (page?.sections) {
+        for (const section of page.sections) {
+          const cfg = section.config || {};
+          if (cfg.image) deleteFile(cfg.image);
+          if (cfg.slides) cfg.slides.forEach(s => { if (s.image) deleteFile(s.image); });
+          if (cfg.images) cfg.images.forEach(img => { if (img) deleteFile(typeof img === "string" ? img : img.url); });
+        }
+      }
       await deletePage(id);
       setDeleteConfirm(null);
       loadPages();

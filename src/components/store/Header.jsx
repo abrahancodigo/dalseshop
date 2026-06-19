@@ -17,8 +17,9 @@ import {
   HiOutlineArrowRightOnRectangle, 
   HiOutlineMagnifyingGlass 
 } from "react-icons/hi2";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { getMenuPages } from "@/lib/firestore";
 import styles from "./Header.module.css";
 import SearchBar from "./SearchBar";
 import BrandTicker from "./BrandTicker";
@@ -87,6 +88,22 @@ export default function StoreHeader() {
   const { totalItems, setIsOpen } = useCart();
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
+  const [badgeKey, setBadgeKey] = useState(0);
+  const [menuPages, setMenuPages] = useState([]);
+  const prevTotalRef = useRef(totalItems);
+
+  useEffect(() => {
+    getMenuPages()
+      .then(setMenuPages)
+      .catch(() => setMenuPages([]));
+  }, []);
+
+  useEffect(() => {
+    if (totalItems !== prevTotalRef.current) {
+      setBadgeKey((k) => k + 1);
+      prevTotalRef.current = totalItems;
+    }
+  }, [totalItems]);
 
   // Close modal on Escape key
   const handleKeyDown = useCallback((e) => {
@@ -109,6 +126,13 @@ export default function StoreHeader() {
   }, [searchModalOpen, handleKeyDown]);
 
   const menuItems = navigation?.header?.menuItems || [];
+
+  const builtInPaths = ['/', '/productos', '/contacto', '/facturacion', '/blog'];
+
+  const dynamicMenuPages = menuPages
+    .filter(p => !menuItems.some(mi => mi.href === `/${p.slug}`))
+    .filter(p => !builtInPaths.includes(`/${p.slug}`))
+    .map(p => ({ label: p.title, href: `/${p.slug}` }));
 
   return (
     <header className={styles.header}>
@@ -172,6 +196,16 @@ export default function StoreHeader() {
                   {item.label}
                 </Link>
               ))}
+              {dynamicMenuPages.map((item, i) => (
+                <Link
+                  key={`page-${i}`}
+                  to={item.href}
+                  className={styles.navLink}
+                  onClick={() => setMenuOpen(false)}
+                >
+                  {item.label}
+                </Link>
+              ))}
             </div>
 
             <div className={styles.mobileAuth}>
@@ -197,7 +231,7 @@ export default function StoreHeader() {
               <button className={styles.cartBtn} onClick={() => setIsOpen(true)}>
                 <HiOutlineShoppingCart />
                 {totalItems > 0 && (
-                  <span className={styles.cartBadge}>{totalItems}</span>
+                  <span key={badgeKey} className={`${styles.cartBadge} ${styles.cartBadgeBounce}`}>{totalItems}</span>
                 )}
               </button>
             )}

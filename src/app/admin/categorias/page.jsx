@@ -6,6 +6,7 @@ import ImageUploader from "@/components/admin/ImageUploader";
 import { useAdminLayout } from "../layout";
 import { useAuth } from "@/context/AuthContext";
 import { getCategories, saveCategory, deleteCategory } from "@/lib/firestore";
+import { deleteFile } from "@/lib/storage";
 import {
   HiOutlineSquares2X2,
   HiOutlinePlusCircle,
@@ -117,6 +118,10 @@ export default function CategoriasPage() {
       return;
     }
     try {
+      const cat = categories.find(c => c.id === id);
+      if (cat?.image) {
+        deleteFile(cat.image);
+      }
       await deleteCategory(id);
       setDeleteConfirm(null);
       loadCategories();

@@ -62,7 +62,7 @@
 }
 
 /* ============================================================
-   HERO SLIDER — 3D Coverflow
+   HERO SLIDER — Multi-Transition
    ============================================================ */
 .hero {
   position: relative;
@@ -91,7 +91,7 @@
   width: 70%;
   height: 100%;
   transform-style: preserve-3d;
-  will-change: transform, opacity;
+  will-change: transform, opacity, filter;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -105,6 +105,19 @@
   overflow: hidden;
   box-shadow: 0 20px 50px rgba(0,0,0,0.2);
   background: white;
+}
+
+.slideCardKenburn {
+  animation: kenBurns 8s ease-in-out infinite alternate;
+}
+
+@keyframes kenBurns {
+  0% {
+    transform: scale(1) translate(0, 0);
+  }
+  100% {
+    transform: scale(1.15) translate(-2%, -1%);
+  }
 }
 
 .heroSlideImg {
@@ -178,6 +191,7 @@
   height: 50px;
   border-radius: 50%;
   background: rgba(255,255,255,0.8);
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   border: 1px solid white;
   color: #333;
@@ -209,6 +223,7 @@
   padding: 0.25rem 0.85rem;
   border-radius: 20px;
   z-index: 20;
+  -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
 }
 
@@ -307,6 +322,7 @@
   height: 40px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.15);
+  -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.3);
   color: white;
@@ -320,6 +336,55 @@
 .heroModalClose:hover {
   background: rgba(255, 255, 255, 0.3);
   transform: scale(1.1);
+}
+
+.heroModalArrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.heroModalArrow:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.heroModalArrowPrev {
+  left: 16px;
+}
+
+.heroModalArrowNext {
+  right: 16px;
+}
+
+.heroModalCounter {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.6);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  color: white;
+  padding: 0.4rem 1rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
 }
 
 @keyframes heroModalFadeIn {
@@ -340,7 +405,22 @@
   .heroModalImage {
     max-width: 100vw;
     max-height: 100vh;
+    max-height: 100dvh;
     border-radius: 0;
+  }
+  .heroModalArrow {
+    width: 40px;
+    height: 40px;
+  }
+  .heroModalArrowPrev {
+    left: 8px;
+  }
+  .heroModalArrowNext {
+    right: 8px;
+  }
+  .heroModalCounter {
+    bottom: 12px;
+    font-size: 0.8rem;
   }
 }
 
@@ -397,6 +477,137 @@
   color: var(--color-text);
   max-width: 800px;
   margin: 0 auto;
+}
+
+/* ============================================================
+   MEDIA + TEXT (Split Section)
+   ============================================================ */
+.mediaTextSection {
+  padding: 4rem 0;
+}
+
+.mediaTextContainer {
+  display: flex;
+  gap: 3rem;
+  align-items: center;
+}
+
+.mediaTextReversed {
+  flex-direction: row-reverse;
+}
+
+.mediaTextMedia {
+  flex: 1;
+  min-width: 0;
+  border-radius: var(--border-radius);
+  overflow: hidden;
+}
+
+.mediaTextImg {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: var(--border-radius);
+  transition: transform var(--transition-slow);
+}
+
+.mediaTextImg:hover {
+  transform: scale(1.02);
+}
+
+.mediaTextVideo {
+  position: relative;
+  width: 100%;
+  padding-bottom: 56.25%;
+  border-radius: var(--border-radius);
+  overflow: hidden;
+}
+
+.mediaTextVideo iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.mediaTextPlaceholder {
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: var(--color-surface);
+  border: 2px dashed var(--color-border);
+  border-radius: var(--border-radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+.mediaTextContent {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.mediaTextText {
+  font-size: 1rem;
+  line-height: 1.8;
+  color: var(--color-text);
+}
+
+.mediaTextText p {
+  margin: 0 0 1rem;
+}
+
+.mediaTextText img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 0.5rem 0;
+}
+
+.mediaTextBtn {
+  display: inline-flex;
+  padding: 0.75rem 1.75rem;
+  background: var(--color-primary);
+  color: white;
+  border-radius: 50px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+  align-self: flex-start;
+}
+
+.mediaTextBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+}
+
+@media (max-width: 768px) {
+  .mediaTextContainer,
+  .mediaTextReversed {
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .mediaTextMedia,
+  .mediaTextContent {
+    width: 100%;
+  }
+
+  .mediaTextContent {
+    text-align: center;
+    align-items: center;
+  }
+
+  .mediaTextBtn {
+    align-self: center;
+  }
 }
 
 /* ============================================================
@@ -482,6 +693,114 @@
 }
 
 /* ============================================================
+   VIDEO PLAYER (Netflix-style)
+   ============================================================ */
+.videoPlayer {
+  position: relative;
+  width: 100%;
+  padding-bottom: 56.25%;
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  background: #000;
+  cursor: pointer;
+}
+
+.videoPlayerPoster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.videoPlayer:hover .videoPlayerPoster {
+  transform: scale(1.03);
+}
+
+.videoPlayerOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0.3) 60%,
+    rgba(0, 0, 0, 0.7) 100%
+  );
+  transition: opacity 0.3s ease;
+}
+
+.videoPlayer:hover .videoPlayerOverlay {
+  opacity: 0.8;
+}
+
+.videoPlayerPlayBtn {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.4);
+  z-index: 2;
+}
+
+.videoPlayerPlayBtn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translate(-50%, -50%) scale(1.1);
+  box-shadow: 0 0 60px rgba(0, 0, 0, 0.5);
+}
+
+.videoPlayerPlayBtn svg {
+  width: 50px;
+  height: 50px;
+  margin-left: 5px;
+}
+
+.videoPlayerTitle {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  right: 20px;
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.videoPlayerIframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.videoPlayerPlaceholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface, #1a1a1a);
+  color: var(--color-muted, #888);
+  font-size: 0.9rem;
+}
+
+/* ============================================================
    FAQ
    ============================================================ */
 .faqList {
@@ -521,19 +840,34 @@
   color: var(--color-primary);
   flex-shrink: 0;
   margin-left: 1rem;
+  transition: transform 0.3s ease;
+}
+
+.faqOpen .faqToggle {
+  transform: rotate(45deg);
+}
+
+.faqAnswerWrapper {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+.faqOpen .faqAnswerWrapper {
+  grid-template-rows: 1fr;
 }
 
 .faqAnswer {
-  padding: 0 1.25rem 1rem;
+  padding: 0 1.25rem;
   font-size: 0.875rem;
   color: var(--color-muted);
   line-height: 1.7;
-  animation: fadeIn 0.3s ease;
+  overflow: hidden;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-5px); }
-  to { opacity: 1; transform: translateY(0); }
+.faqOpen .faqAnswer {
+  padding: 0 1.25rem 1rem;
 }
 
 /* ============================================================

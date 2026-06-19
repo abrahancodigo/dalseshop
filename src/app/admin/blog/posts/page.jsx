@@ -5,6 +5,7 @@ import AdminHeader from "@/components/admin/AdminHeader";
 import { useAdminLayout } from "../../layout";
 import { useAuth } from "@/context/AuthContext";
 import { getBlogPosts, saveBlogPost, deleteBlogPost } from "@/lib/firestore";
+import { deleteFile } from "@/lib/storage";
 import { Link, useNavigate } from "react-router-dom";
 import { HiOutlineDocumentText, HiOutlinePlusCircle, HiOutlinePencilSquare, HiOutlineTrash, HiOutlineGlobeAlt, HiOutlineEyeSlash } from "react-icons/hi2";
 import adminStyles from "../../admin.module.css";
@@ -42,8 +43,15 @@ export default function BlogAdminPage() {
       alert("Usted no tiene los permisos para realizar esta accion");
       return;
     }
-    try { await deleteBlogPost(id); setDeleteConfirm(null); loadPosts(); }
-    catch (err) { console.error(err); }
+    try {
+      const post = posts.find(p => p.id === id);
+      if (post?.image) {
+        deleteFile(post.image);
+      }
+      await deleteBlogPost(id);
+      setDeleteConfirm(null);
+      loadPosts();
+    } catch (err) { console.error(err); }
   };
 
   const formatDate = (ts) => {

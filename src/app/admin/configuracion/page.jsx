@@ -6,7 +6,7 @@ import ImageUploader from "@/components/admin/ImageUploader";
 import { useAdminLayout } from "../layout";
 import { useAuth } from "@/context/AuthContext";
 import { useStore } from "@/context/StoreContext";
-import { getStoreSettings, saveStoreSettings } from "@/lib/firestore";
+import { saveStoreSettings } from "@/lib/firestore";
 import { functions } from "@/lib/firebase";
 import { httpsCallable } from "firebase/functions";
 import adminStyles from "../admin.module.css";
@@ -14,21 +14,16 @@ import adminStyles from "../admin.module.css";
 export default function ConfiguracionPage() {
   const { toggleSidebar } = useAdminLayout();
   const { canManage } = useAuth();
-  const { defaultSettings } = useStore();
+  const { settings, defaultSettings } = useStore();
   const [form, setForm] = useState(defaultSettings);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    loadSettings();
-  }, []);
-
-  const loadSettings = async () => {
-    const data = await getStoreSettings();
-    if (data) {
-      setForm({ ...defaultSettings, ...data });
+    if (settings && Object.keys(settings).length > 1) {
+      setForm(settings);
     }
-  };
+  }, [settings]);
 
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));

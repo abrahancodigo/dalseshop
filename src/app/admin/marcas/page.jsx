@@ -104,7 +104,10 @@ export default function MarcasPage() {
     try {
       const brandToDelete = brands.find(b => b.id === id);
       if (brandToDelete?.logo) {
-        await deleteFile(brandToDelete.logo);
+        deleteFile(brandToDelete.logo);
+      }
+      if (brandToDelete?.bannerImage) {
+        deleteFile(brandToDelete.bannerImage);
       }
       await deleteBrand(id);
       setDeleteConfirm(null);

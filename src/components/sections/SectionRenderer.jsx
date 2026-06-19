@@ -5,9 +5,74 @@ import { Link } from "react-router-dom";
 import { getProducts, getFeaturedProducts, addSubscriber } from "@/lib/firestore";
 import { useCart } from "@/context/CartContext";
 import { useImage } from "@/context/ImageContext";
+import { useReveal } from "@/hooks/useReveal";
 import ProductCard from "@/components/store/ProductCard";
 import { sanitizeHtml } from "@/lib/sanitize";
+import { isYouTubeUrl, extractYouTubeId, getYouTubeEmbedUrl } from "@/lib/videoUtils";
+import VideoPlayer from "./VideoPlayer";
 import styles from "./sections.module.css";
+
+// ============================================================
+// TIKTOK EMBED HELPER
+// ============================================================
+function isTikTokUrl(url) {
+  if (!url) return false;
+  return /tiktok\.com/.test(url) || /vt\.tiktok\.com/.test(url) || /vm\.tiktok\.com/.test(url);
+}
+
+function TikTokEmbed({ url }) {
+  const [videoId, setVideoId] = useState(null);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    if (!url) return;
+    let cancelled = false;
+
+    async function resolve() {
+      try {
+        const oembedUrl = `https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`;
+        const res = await fetch(oembedUrl);
+        if (!res.ok) throw new Error("oEmbed failed");
+        const data = await res.json();
+        if (cancelled) return;
+
+        const match = data.html.match(/data-video-id="(\d+)"/);
+        if (match) {
+          setVideoId(match[1]);
+        } else {
+          setError(true);
+        }
+      } catch {
+        if (!cancelled) setError(true);
+      }
+    }
+
+    resolve();
+    return () => { cancelled = true; };
+  }, [url]);
+
+  if (error || !videoId) {
+    if (error) {
+      return (
+        <a href={url} target="_blank" rel="noopener noreferrer" style={{ display: "block", textAlign: "center", padding: "1rem", background: "#111", color: "#fff", borderRadius: 12, textDecoration: "none" }}>
+          Ver en TikTok
+        </a>
+      );
+    }
+    return null;
+  }
+
+  return (
+    <iframe
+      src={`https://www.tiktok.com/embed/v2/${videoId}`}
+      frameBorder="0"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      allowFullScreen
+      title="TikTok video"
+      style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: 0 }}
+    />
+  );
+}
 
 // ============================================================
 // MAIN RENDERER
@@ -62,6 +127,7 @@ function RenderSection({ section }) {
     case "featuredProducts": return <FeaturedProductsSection config={config} />;
     case "productGrid": return <ProductGridSection config={config} />;
     case "textBlock": return <TextBlockSection config={config} />;
+    case "mediaText": return <MediaTextSection config={config} />;
     case "imageGallery": return <ImageGallerySection config={config} />;
     case "testimonials": return <TestimonialsSection config={config} />;
     case "video": return <VideoSection config={config} />;
@@ -94,7 +160,7 @@ function HeroSection({ config }) {
   const [previous, setPrevious] = useState(null);
   const [animating, setAnimating] = useState(false);
   const [direction, setDirection] = useState("next");
-  const [modalImage, setModalImage] = useState(null);
+  const [modalIndex, setModalIndex] = useState(null);
   const timeoutRef = useRef(null);
   const animRef = useRef(null);
 
@@ -142,36 +208,175 @@ function HeroSection({ config }) {
     timeoutRef.current = setInterval(() => goNextRef.current(), autoplaySpeed);
   };
 
+  const openModal = useCallback((index) => {
+    setModalIndex(index);
+    if (timeoutRef.current) clearInterval(timeoutRef.current);
+  }, []);
+
+  const closeModal = useCallback(() => {
+    setModalIndex(null);
+    if (hasMultipleSlides) {
+      timeoutRef.current = setInterval(() => goNextRef.current(), autoplaySpeed);
+    }
+  }, [hasMultipleSlides, autoplaySpeed]);
+
+  const modalPrev = useCallback(() => {
+    setModalIndex((i) => (i - 1 + slides.length) % slides.length);
+  }, [slides.length]);
+
+  const modalNext = useCallback(() => {
+    setModalIndex((i) => (i + 1) % slides.length);
+  }, [slides.length]);
+
+  useEffect(() => {
+    if (modalIndex === null) return;
+    const handleKey = (e) => {
+      if (e.key === "Escape") closeModal();
+      if (e.key === "ArrowLeft") modalPrev();
+      if (e.key === "ArrowRight") modalNext();
+    };
+    document.addEventListener("keydown", handleKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", handleKey);
+      document.body.style.overflow = "";
+    };
+  }, [modalIndex, closeModal, modalPrev, modalNext]);
+
+  const transition = config.transition || "cube";
+
   const getSlideStyle = (index) => {
     const diff = index - current;
-    
-    // Simple circular distance for small slide counts
     let dist = diff;
     if (slides.length > 2) {
       if (diff > 1) dist = diff - slides.length;
       if (diff < -1) dist = diff + slides.length;
     }
 
-    let transform = "translateX(0) scale(1) rotateY(0)";
+    const isCurrent = dist === 0;
+    const isPrev = dist === -1 || (dist === slides.length - 1 && slides.length > 2);
+    const isNext = dist === 1 || (dist === -(slides.length - 1) && slides.length > 2);
+
+    let transform = "";
     let opacity = 1;
     let zIndex = 1;
     let visibility = "visible";
+    let filter = "none";
 
-    if (dist === 0) {
-      transform = "translateX(0) scale(1) rotateY(0)";
-      zIndex = 10;
-    } else if (dist === 1 || (dist === -(slides.length - 1) && slides.length > 2)) {
-      transform = "translateX(50%) scale(0.8) rotateY(-35deg)";
-      opacity = 0.6;
-      zIndex = 5;
-    } else if (dist === -1 || (dist === (slides.length - 1) && slides.length > 2)) {
-      transform = "translateX(-50%) scale(0.8) rotateY(35deg)";
-      opacity = 0.6;
-      zIndex = 5;
-    } else {
-      opacity = 0;
-      visibility = "hidden";
-      transform = `translateX(${dist > 0 ? "100%" : "-100%"}) scale(0.5)`;
+    switch (transition) {
+      case "fade":
+        if (isCurrent) {
+          transform = "translateX(0) scale(1)";
+          zIndex = 10;
+          opacity = 1;
+        } else {
+          transform = "translateX(0) scale(1)";
+          opacity = 0;
+          zIndex = 1;
+          visibility = "hidden";
+        }
+        break;
+
+      case "slide":
+        if (isCurrent) {
+          transform = "translateX(0) scale(1)";
+          zIndex = 10;
+        } else if (isNext || (dist === -(slides.length - 1) && slides.length > 2)) {
+          transform = "translateX(100%) scale(1)";
+          opacity = 0;
+          zIndex = 1;
+          visibility = "hidden";
+        } else if (isPrev || (dist === slides.length - 1 && slides.length > 2)) {
+          transform = "translateX(-100%) scale(1)";
+          opacity = 0;
+          zIndex = 1;
+          visibility = "hidden";
+        } else {
+          transform = `translateX(${dist > 0 ? "100%" : "-100%"}) scale(1)`;
+          opacity = 0;
+          visibility = "hidden";
+        }
+        break;
+
+      case "zoom":
+        if (isCurrent) {
+          transform = "translateX(0) scale(1)";
+          zIndex = 10;
+          opacity = 1;
+        } else {
+          transform = `translateX(0) scale(${dist > 0 ? 1.3 : 0.7})`;
+          opacity = 0;
+          zIndex = 1;
+          visibility = "hidden";
+        }
+        break;
+
+      case "blur":
+        if (isCurrent) {
+          transform = "translateX(0) scale(1)";
+          zIndex = 10;
+          opacity = 1;
+          filter = "blur(0)";
+        } else {
+          transform = "translateX(0) scale(1.05)";
+          opacity = 0;
+          zIndex = 1;
+          visibility = "hidden";
+          filter = "blur(12px)";
+        }
+        break;
+
+      case "flip":
+        if (isCurrent) {
+          transform = "translateX(0) rotateY(0deg) scale(1)";
+          zIndex = 10;
+          opacity = 1;
+        } else if (isNext || (dist === -(slides.length - 1) && slides.length > 2)) {
+          transform = "translateX(30%) rotateY(-90deg) scale(0.8)";
+          opacity = 0;
+          zIndex = 1;
+        } else if (isPrev || (dist === slides.length - 1 && slides.length > 2)) {
+          transform = "translateX(-30%) rotateY(90deg) scale(0.8)";
+          opacity = 0;
+          zIndex = 1;
+        } else {
+          transform = `translateX(${dist > 0 ? "100%" : "-100%"}) rotateY(${dist > 0 ? -90 : 90}deg) scale(0.5)`;
+          opacity = 0;
+          visibility = "hidden";
+        }
+        break;
+
+      case "kenburn":
+        if (isCurrent) {
+          transform = "translateX(0) scale(1)";
+          zIndex = 10;
+          opacity = 1;
+        } else {
+          transform = "translateX(0) scale(1)";
+          opacity = 0;
+          zIndex = 1;
+          visibility = "hidden";
+        }
+        break;
+
+      default: // cube
+        if (isCurrent) {
+          transform = "translateX(0) scale(1) rotateY(0)";
+          zIndex = 10;
+        } else if (isNext || (dist === -(slides.length - 1) && slides.length > 2)) {
+          transform = "translateX(50%) scale(0.8) rotateY(-35deg)";
+          opacity = 0.6;
+          zIndex = 5;
+        } else if (isPrev || (dist === slides.length - 1 && slides.length > 2)) {
+          transform = "translateX(-50%) scale(0.8) rotateY(35deg)";
+          opacity = 0.6;
+          zIndex = 5;
+        } else {
+          opacity = 0;
+          visibility = "hidden";
+          transform = `translateX(${dist > 0 ? "100%" : "-100%"}) scale(0.5)`;
+        }
+        break;
     }
 
     return {
@@ -179,7 +384,8 @@ function HeroSection({ config }) {
       opacity,
       zIndex,
       visibility,
-      transition: "all 0.6s cubic-bezier(0.4, 0, 0.2, 1)"
+      filter,
+      transition: "all 0.7s cubic-bezier(0.4, 0, 0.2, 1)",
     };
   };
 
@@ -198,7 +404,7 @@ function HeroSection({ config }) {
             className={styles.heroSlide}
             style={getSlideStyle(index)}
           >
-            <div className={styles.slideCard}>
+            <div className={`${styles.slideCard} ${transition === "kenburn" && index === current ? styles.slideCardKenburn : ""}`}>
               {slide.image && (
                 <img
                   src={slide.image}
@@ -207,7 +413,7 @@ function HeroSection({ config }) {
                   onClick={(e) => {
                     e.stopPropagation();
                     if (isClickable) {
-                      setModalImage(slide.image);
+                      openModal(index);
                     } else {
                       openImage(slide.image);
                     }
@@ -263,13 +469,36 @@ function HeroSection({ config }) {
       )}
     </section>
 
-    {modalImage && (
-      <div className={styles.heroModalOverlay} onClick={() => setModalImage(null)}>
+    {modalIndex !== null && (
+      <div className={styles.heroModalOverlay} onClick={closeModal}>
         <div className={styles.heroModalContent} onClick={(e) => e.stopPropagation()}>
-          <button className={styles.heroModalClose} onClick={() => setModalImage(null)} aria-label="Cerrar">
+          <button className={styles.heroModalClose} onClick={closeModal} aria-label="Cerrar">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
-          <img src={modalImage} alt="Banner completo" className={styles.heroModalImage} onClick={() => setModalImage(null)} />
+
+          {hasMultipleSlides && (
+            <button className={`${styles.heroModalArrow} ${styles.heroModalArrowPrev}`} onClick={(e) => { e.stopPropagation(); modalPrev(); }} aria-label="Anterior">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+          )}
+
+          <img
+            src={slides[modalIndex].image}
+            alt={slides[modalIndex].title || "Banner completo"}
+            className={styles.heroModalImage}
+          />
+
+          {hasMultipleSlides && (
+            <button className={`${styles.heroModalArrow} ${styles.heroModalArrowNext}`} onClick={(e) => { e.stopPropagation(); modalNext(); }} aria-label="Siguiente">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          )}
+
+          {hasMultipleSlides && (
+            <div className={styles.heroModalCounter}>
+              {modalIndex + 1} / {slides.length}
+            </div>
+          )}
         </div>
       </div>
     )}
@@ -284,6 +513,7 @@ function FeaturedProductsSection({ config }) {
   const [products, setProducts] = useState([]);
   const { addItem } = useCart();
   const limit = config.count || 4;
+  const [ref, isVisible] = useReveal();
 
   useEffect(() => {
     getFeaturedProducts(limit)
@@ -309,8 +539,8 @@ function FeaturedProductsSection({ config }) {
   }
 
   return (
-    <section className={styles.section}>
-      <div className="container">
+    <section className={styles.section} ref={ref}>
+      <div className={`container reveal ${isVisible ? "revealed" : ""}`}>
         {config.title && <h2 className={styles.sectionTitle}>{config.title}</h2>}
         <div className={styles.productGrid} style={{ gridTemplateColumns: `repeat(${config.columns || 4}, 1fr)` }}>
           {products.map((p) => (
@@ -328,6 +558,7 @@ function FeaturedProductsSection({ config }) {
 function ProductGridSection({ config }) {
   const [products, setProducts] = useState([]);
   const { addItem } = useCart();
+  const [ref, isVisible] = useReveal();
 
   useEffect(() => {
     getProducts({
@@ -362,8 +593,8 @@ function ProductGridSection({ config }) {
   }
 
   return (
-    <section className={styles.section}>
-      <div className="container">
+    <section className={styles.section} ref={ref}>
+      <div className={`container reveal ${isVisible ? "revealed" : ""}`}>
         {config.title && <h2 className={styles.sectionTitle}>{config.title}</h2>}
         <div className={styles.productGrid} style={{ gridTemplateColumns: `repeat(${config.columns || 4}, 1fr)` }}>
           {products.map((p) => (
@@ -399,6 +630,89 @@ function TextBlockSection({ config }) {
         {config.content && (
           <div className={styles.textContent} dangerouslySetInnerHTML={{ __html: sanitizeHtml(config.content.replace(/\n/g, "<br/>")) }} />
         )}
+      </div>
+    </section>
+  );
+}
+
+// ============================================================
+// MEDIA + TEXT (Split Section)
+// ============================================================
+function MediaTextSection({ config }) {
+  const { openImage } = useImage();
+  const mediaPosition = config.mediaPosition || "left";
+  const verticalAlign = config.verticalAlign || "center";
+  const isReversed = mediaPosition === "right";
+
+  const alignMap = { top: "flex-start", center: "center", bottom: "flex-end" };
+  const textAlignMap = { top: "left", center: "center", bottom: "left" };
+
+  const getEmbedUrl = (url) => {
+    if (!url) return "";
+    const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
+    if (vimeoMatch) return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+    return url;
+  };
+
+  const renderMedia = () => {
+    if (config.mediaType === "video" && config.videoUrl) {
+      if (isTikTokUrl(config.videoUrl)) {
+        return (
+          <div className={styles.mediaTextVideo}>
+            <TikTokEmbed url={config.videoUrl} />
+          </div>
+        );
+      }
+      if (isYouTubeUrl(config.videoUrl)) {
+        return <VideoPlayer url={config.videoUrl} title={config.title} />;
+      }
+      const embedUrl = getEmbedUrl(config.videoUrl);
+      return (
+        <div className={styles.mediaTextVideo}>
+          <iframe
+            src={embedUrl}
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            title={config.title || "Video"}
+          />
+        </div>
+      );
+    }
+    if (config.image) {
+      return (
+        <img
+          src={config.image}
+          alt={config.title || ""}
+          className={styles.mediaTextImg}
+          onClick={() => openImage(config.image)}
+          style={{ cursor: "pointer" }}
+          title="Click para ver imagen completa"
+        />
+      );
+    }
+    return <div className={styles.mediaTextPlaceholder}>Sin media</div>;
+  };
+
+  return (
+    <section className={styles.mediaTextSection} style={{ background: config.backgroundColor || undefined }}>
+      <div className={`container`}>
+        {config.title && <h2 className={styles.sectionTitle} style={{ textAlign: "center" }}>{config.title}</h2>}
+        <div className={`${styles.mediaTextContainer} ${isReversed ? styles.mediaTextReversed : ""}`} style={{ alignItems: alignMap[verticalAlign] }}>
+          <div className={styles.mediaTextMedia}>
+            {renderMedia()}
+          </div>
+          <div className={styles.mediaTextContent} style={{ textAlign: textAlignMap[verticalAlign] }}>
+            {config.content && (
+              <div className={styles.mediaTextText} dangerouslySetInnerHTML={{ __html: sanitizeHtml(config.content) }} />
+            )}
+            {config.buttonText && (
+              <Link to={config.buttonLink || "#"} className={styles.mediaTextBtn}>
+                {config.buttonText}
+              </Link>
+            )}
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -455,29 +769,47 @@ function TestimonialsSection({ config }) {
 // VIDEO
 // ============================================================
 function VideoSection({ config }) {
+  if (!config.url) return null;
+
+  const isTikTok = isTikTokUrl(config.url);
+  const isYT = isYouTubeUrl(config.url);
+
+  if (isYT) {
+    return (
+      <section className={styles.section}>
+        <div className="container">
+          {config.title && <h2 className={styles.sectionTitle}>{config.title}</h2>}
+          <VideoPlayer url={config.url} title={config.title} />
+        </div>
+      </section>
+    );
+  }
+
   const getEmbedUrl = (url) => {
     if (!url) return "";
-    const youtubeMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/);
-    if (youtubeMatch) return `https://www.youtube.com/embed/${youtubeMatch[1]}`;
     const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
     if (vimeoMatch) return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
     return url;
   };
-
-  if (!config.url) return null;
 
   return (
     <section className={styles.section}>
       <div className="container">
         {config.title && <h2 className={styles.sectionTitle}>{config.title}</h2>}
         <div className={styles.videoWrapper}>
-          <iframe
-            src={getEmbedUrl(config.url)}
-            frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            title={config.title || "Video"}
-          />
+          {isTikTok ? (
+            <div style={{ display: "flex", justifyContent: "center" }}>
+              <TikTokEmbed url={config.url} />
+            </div>
+          ) : (
+            <iframe
+              src={getEmbedUrl(config.url)}
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              title={config.title || "Video"}
+            />
+          )}
         </div>
       </div>
     </section>
@@ -503,9 +835,9 @@ function FAQSection({ config }) {
                 <span>{item.question}</span>
                 <span className={styles.faqToggle}>{openIndex === i ? "−" : "+"}</span>
               </button>
-              {openIndex === i && (
+              <div className={styles.faqAnswerWrapper}>
                 <div className={styles.faqAnswer}>{item.answer}</div>
-              )}
+              </div>
             </div>
           ))}
         </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import AdminHeader from "@/components/admin/AdminHeader";
 import ImageUploader from "@/components/admin/ImageUploader";
@@ -27,15 +27,21 @@ import {
   HiOutlineSquares2X2,
   HiOutlineMinusSmall,
   HiOutlineRectangleGroup,
+  HiOutlineBold,
+  HiOutlineItalic,
+  HiOutlineLink,
+  HiOutlineListBullet,
 } from "react-icons/hi2";
 import adminStyles from "../../admin.module.css";
 import styles from "./editor.module.css";
+import { isYouTubeUrl, extractYouTubeId, getYouTubeThumbnail } from "@/lib/videoUtils";
 
 const SECTION_TYPES = [
   { type: "hero", label: "Hero / Banner", icon: HiOutlinePhoto, color: "#6C5CE7" },
   { type: "featuredProducts", label: "Productos Destacados", icon: HiOutlineShoppingBag, color: "#00CEC9" },
   { type: "productGrid", label: "Grid de Productos", icon: HiOutlineSquares2X2, color: "#0984E3" },
   { type: "textBlock", label: "Bloque de Texto", icon: HiOutlineDocumentText, color: "#FDCB6E" },
+  { type: "mediaText", label: "Media + Texto", icon: HiOutlineRectangleGroup, color: "#E84393" },
   { type: "imageGallery", label: "Galería de Imágenes", icon: HiOutlinePhoto, color: "#E17055" },
   { type: "testimonials", label: "Testimonios", icon: HiOutlineChatBubbleLeftRight, color: "#00B894" },
   { type: "video", label: "Video", icon: HiOutlinePlayCircle, color: "#E84393" },
@@ -52,6 +58,7 @@ const DEFAULT_SECTION_CONFIG = {
   featuredProducts: { title: "Productos Destacados", count: 4, columns: 4 },
   productGrid: { title: "Nuestros Productos", category: "", brand: "", count: 8, columns: 4, productCodes: [] },
   textBlock: { title: "", content: "", alignment: "center", backgroundColor: "" },
+  mediaText: { title: "", content: "", mediaType: "image", image: "", videoUrl: "", mediaPosition: "left", backgroundColor: "", verticalAlign: "center", buttonText: "", buttonLink: "" },
   imageGallery: { title: "", images: [], columns: 3 },
   testimonials: { title: "Lo que dicen nuestros clientes", items: [{ name: "", text: "", rating: 5 }] },
   video: { title: "", url: "", autoplay: false },
@@ -154,6 +161,7 @@ export default function PageEditorPage() {
         sections: page.sections || [],
         isPublished: page.isPublished,
         isHomePage: page.isHomePage,
+        showInMenu: page.showInMenu || false,
         order: page.order || 0,
       });
       setSaved(true);
@@ -196,7 +204,7 @@ export default function PageEditorPage() {
             <HiOutlineArrowLeft /> Volver a páginas
           </button>
           
-          {page.isPublished && (
+          {page.isPublished ? (
             <a 
               href={page.isHomePage ? "/" : `/${page.slug}`} 
               target="_blank" 
@@ -204,6 +212,15 @@ export default function PageEditorPage() {
               className="btn btn-outline btn-sm"
             >
               <HiOutlinePlusCircle style={{ transform: "rotate(45deg)" }} /> Ver Página
+            </a>
+          ) : (
+            <a 
+              href={`/preview/${pageId}`} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="btn btn-outline btn-sm"
+            >
+              <HiOutlinePlusCircle style={{ transform: "rotate(45deg)" }} /> Vista Previa
             </a>
           )}
         </div>
@@ -236,7 +253,7 @@ export default function PageEditorPage() {
                   />
                 </div>
               </div>
-              <div style={{ display: "flex", gap: "2rem", marginTop: "0.5rem" }}>
+              <div style={{ display: "flex", gap: "2rem", flexWrap: "wrap", marginTop: "0.5rem" }}>
                 <div className={styles.toggleRow}>
                   <label className="admin-form-label" style={{ marginBottom: 0, marginRight: "0.5rem" }}>
                     Publicada
@@ -259,6 +276,19 @@ export default function PageEditorPage() {
                       type="checkbox"
                       checked={page.isHomePage}
                       onChange={(e) => handlePageChange("isHomePage", e.target.checked)}
+                    />
+                    <span className="toggle-slider" />
+                  </label>
+                </div>
+                <div className={styles.toggleRow}>
+                  <label className="admin-form-label" style={{ marginBottom: 0, marginRight: "0.5rem" }}>
+                    Mostrar en Menú
+                  </label>
+                  <label className="toggle-switch">
+                    <input
+                      type="checkbox"
+                      checked={page.showInMenu || false}
+                      onChange={(e) => handlePageChange("showInMenu", e.target.checked)}
                     />
                     <span className="toggle-slider" />
                   </label>
@@ -656,6 +686,9 @@ function SectionConfigEditor({ section, onUpdate }) {
         </div>
       );
 
+    case "mediaText":
+      return <MediaTextEditor config={config} onUpdate={onUpdate} />;
+
     case "imageGallery":
       return (
         <div>
@@ -733,7 +766,20 @@ function SectionConfigEditor({ section, onUpdate }) {
           <div className="admin-form-group">
             <label className="admin-form-label">URL del Video</label>
             <input className="admin-form-input" value={config.url || ""} onChange={(e) => handleChange("url", e.target.value)} placeholder="https://youtube.com/watch?v=..." />
-            <span className="admin-form-hint">YouTube o Vimeo</span>
+            <span className="admin-form-hint">YouTube, Vimeo o TikTok</span>
+            {config.url && isYouTubeUrl(config.url) && (() => {
+              const ytId = extractYouTubeId(config.url);
+              return ytId ? (
+                <div style={{ marginTop: "0.75rem", borderRadius: 10, overflow: "hidden", border: "1px solid var(--admin-border)" }}>
+                  <img
+                    src={getYouTubeThumbnail(ytId, "maxresdefault")}
+                    alt="Preview del video"
+                    style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", display: "block" }}
+                    onError={(e) => { e.target.src = getYouTubeThumbnail(ytId, "hqdefault"); }}
+                  />
+                </div>
+              ) : null;
+            })()}
           </div>
         </div>
       );
@@ -927,4 +973,252 @@ function SectionConfigEditor({ section, onUpdate }) {
     default:
       return <p style={{ color: "var(--admin-text-muted)" }}>Editor no disponible para este tipo de sección.</p>;
   }
+}
+
+// ============================================================
+// MEDIA + TEXT EDITOR
+// ============================================================
+function isTikTokUrl(url) {
+  if (!url) return false;
+  return /tiktok\.com/.test(url) || /vt\.tiktok\.com/.test(url) || /vm\.tiktok\.com/.test(url);
+}
+
+function TikTokPreview({ url }) {
+  const [videoId, setVideoId] = useState(null);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    if (!url) return;
+    let cancelled = false;
+
+    async function resolve() {
+      try {
+        const oembedUrl = `https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`;
+        const res = await fetch(oembedUrl);
+        if (!res.ok) throw new Error("oEmbed failed");
+        const data = await res.json();
+        if (cancelled) return;
+
+        const match = data.html.match(/data-video-id="(\d+)"/);
+        if (match) {
+          setVideoId(match[1]);
+        } else {
+          setError(true);
+        }
+      } catch {
+        if (!cancelled) setError(true);
+      }
+    }
+
+    resolve();
+    return () => { cancelled = true; };
+  }, [url]);
+
+  if (error) {
+    return (
+      <a href={url} target="_blank" rel="noopener noreferrer" style={{ display: "block", textAlign: "center", padding: "1rem", background: "#111", color: "#fff", borderRadius: 12, textDecoration: "none" }}>
+        Ver en TikTok
+      </a>
+    );
+  }
+
+  if (!videoId) return null;
+
+  return (
+    <div style={{ position: "relative", width: "100%", paddingBottom: "56.25%", borderRadius: 10, overflow: "hidden" }}>
+      <iframe
+        src={`https://www.tiktok.com/embed/v2/${videoId}`}
+        frameBorder="0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowFullScreen
+        title="TikTok preview"
+        style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: 0 }}
+      />
+    </div>
+  );
+}
+
+function MediaTextEditor({ config, onUpdate }) {
+  const fileInputRef = useRef(null);
+  const textareaId = "media-text-content";
+  const [uploading, setUploading] = useState(false);
+
+  const handleChange = (field, value) => onUpdate({ [field]: value });
+
+  const insertAtCursor = (text, wrapSelection) => {
+    const ta = document.getElementById(textareaId);
+    if (!ta) return;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const selected = ta.value.substring(start, end);
+    let replacement;
+    if (wrapSelection) {
+      const [before, after] = wrapSelection;
+      replacement = before + selected + after;
+    } else {
+      replacement = text;
+    }
+    const newValue = ta.value.substring(0, start) + replacement + ta.value.substring(end);
+    const newCursor = start + replacement.length;
+    onUpdate({ content: newValue });
+    setTimeout(() => {
+      ta.focus();
+      ta.selectionStart = newCursor;
+      ta.selectionEnd = newCursor;
+    }, 0);
+  };
+
+  const applyFormat = ([openTag, closeTag]) => {
+    const ta = document.getElementById(textareaId);
+    if (!ta) return;
+    insertAtCursor("", [openTag, closeTag]);
+  };
+
+  const handleToolbarAction = (action) => {
+    const ta = document.getElementById(textareaId);
+    if (!ta) return;
+    switch (action) {
+      case "bold": return applyFormat(["<strong>", "</strong>"]);
+      case "italic": return applyFormat(["<em>", "</em>"]);
+      case "ul": return applyFormat(["\n<ul>\n  <li>", "</li>\n</ul>"]);
+      case "p": return applyFormat(["<p>", "</p>"]);
+      case "link": {
+        const url = prompt("URL del enlace:", "https://");
+        if (url) applyFormat([`<a href="${url}">`, "</a>"]);
+        return;
+      }
+      case "image": {
+        fileInputRef.current?.click();
+        return;
+      }
+    }
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const { uploadImage } = await import("@/lib/storage");
+      const url = await uploadImage(file, "pages");
+      insertAtCursor(`<img src="${url}" alt="Imagen" style="max-width:100%;height:auto;border-radius:8px;margin:0.5rem 0" />`);
+    } catch (err) {
+      console.error("Error uploading image:", err);
+      alert("Error al subir imagen");
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  const getEmbedUrl = (url) => {
+    if (!url) return "";
+    const youtubeMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/);
+    if (youtubeMatch) return `https://www.youtube.com/embed/${youtubeMatch[1]}`;
+    const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
+    if (vimeoMatch) return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+    return url;
+  };
+
+  const previewVideo = config.mediaType === "video" && config.videoUrl ? getEmbedUrl(config.videoUrl) : "";
+
+  return (
+    <div>
+      <div className="admin-form-group">
+        <label className="admin-form-label">Tipo de Media</label>
+        <select className="admin-form-select" value={config.mediaType || "image"} onChange={(e) => handleChange("mediaType", e.target.value)}>
+          <option value="image">Imagen</option>
+          <option value="video">Video (URL)</option>
+        </select>
+      </div>
+
+      {config.mediaType === "image" ? (
+        <div className="admin-form-group">
+          <ImageUploader label="Imagen" value={config.image || ""} onChange={(url) => handleChange("image", url)} folder="pages" />
+        </div>
+      ) : (
+        <div className="admin-form-group">
+          <label className="admin-form-label">URL del Video</label>
+          <input className="admin-form-input" value={config.videoUrl || ""} onChange={(e) => handleChange("videoUrl", e.target.value)} placeholder="https://youtube.com/watch?v=... o https://vt.tiktok.com/..." />
+          <span className="admin-form-hint">YouTube, Vimeo o TikTok (acepta links cortos)</span>
+          {previewVideo && !isTikTokUrl(config.videoUrl || "") && (
+            <div style={{ marginTop: "0.75rem", borderRadius: 10, overflow: "hidden", border: "1px solid var(--admin-border)" }}>
+              <iframe src={previewVideo} style={{ width: "100%", aspectRatio: "16/9", border: 0 }} allowFullScreen title="Preview" />
+            </div>
+          )}
+          {isTikTokUrl(config.videoUrl || "") && (
+            <div style={{ marginTop: "0.75rem", padding: "1rem", borderRadius: 10, border: "1px solid var(--admin-border)", background: "var(--admin-bg)" }}>
+              <TikTokPreview url={config.videoUrl} />
+            </div>
+          )}
+        </div>
+      )}
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+        <div className="admin-form-group">
+          <label className="admin-form-label">Posición del Media</label>
+          <select className="admin-form-select" value={config.mediaPosition || "left"} onChange={(e) => handleChange("mediaPosition", e.target.value)}>
+            <option value="left">Izquierda</option>
+            <option value="right">Derecha</option>
+          </select>
+        </div>
+        <div className="admin-form-group">
+          <label className="admin-form-label">Alineación Vertical</label>
+          <select className="admin-form-select" value={config.verticalAlign || "center"} onChange={(e) => handleChange("verticalAlign", e.target.value)}>
+            <option value="top">Arriba</option>
+            <option value="center">Centro</option>
+            <option value="bottom">Abajo</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="admin-form-group">
+        <label className="admin-form-label">Color de Fondo</label>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <input type="color" value={config.backgroundColor || "#ffffff"} onChange={(e) => handleChange("backgroundColor", e.target.value)} style={{ width: 40, height: 40, border: "none", cursor: "pointer", borderRadius: 8, padding: 0 }} />
+          <input className="admin-form-input" value={config.backgroundColor || ""} onChange={(e) => handleChange("backgroundColor", e.target.value)} placeholder="#ffffff (transparent)" style={{ flex: 1 }} />
+        </div>
+        <span className="admin-form-hint">Dejar vacío para fondo transparente</span>
+      </div>
+
+      <div className="admin-form-group">
+        <label className="admin-form-label">Título</label>
+        <input className="admin-form-input" value={config.title || ""} onChange={(e) => handleChange("title", e.target.value)} />
+      </div>
+
+      <div className="admin-form-group">
+        <label className="admin-form-label">Contenido</label>
+        <div style={{ display: "flex", gap: "0.25rem", marginBottom: "0.5rem", flexWrap: "wrap" }}>
+          <button type="button" className="btn btn-ghost btn-sm" style={{ padding: "0.3rem 0.5rem", fontSize: "0.8rem" }} title="Negrita" onClick={() => handleToolbarAction("bold")}><HiOutlineBold /></button>
+          <button type="button" className="btn btn-ghost btn-sm" style={{ padding: "0.3rem 0.5rem", fontSize: "0.8rem" }} title="Cursiva" onClick={() => handleToolbarAction("italic")}><HiOutlineItalic /></button>
+          <button type="button" className="btn btn-ghost btn-sm" style={{ padding: "0.3rem 0.5rem", fontSize: "0.8rem" }} title="Enlace" onClick={() => handleToolbarAction("link")}><HiOutlineLink /></button>
+          <button type="button" className="btn btn-ghost btn-sm" style={{ padding: "0.3rem 0.5rem", fontSize: "0.8rem" }} title="Lista" onClick={() => handleToolbarAction("ul")}><HiOutlineListBullet /></button>
+          <button type="button" className="btn btn-ghost btn-sm" style={{ padding: "0.3rem 0.5rem", fontSize: "0.8rem" }} title="Párrafo" onClick={() => handleToolbarAction("p")}>P</button>
+          <button type="button" className="btn btn-ghost btn-sm" style={{ padding: "0.3rem 0.5rem", fontSize: "0.8rem" }} title="Subir imagen" onClick={() => handleToolbarAction("image")} disabled={uploading}><HiOutlinePhoto /></button>
+          {uploading && <span style={{ fontSize: "0.7rem", color: "var(--admin-text-muted)", display: "flex", alignItems: "center" }}>Subiendo...</span>}
+        </div>
+        <textarea
+          id={textareaId}
+          className="admin-form-textarea"
+          value={config.content || ""}
+          onChange={(e) => handleChange("content", e.target.value)}
+          rows={8}
+          placeholder="Escribe el contenido aquí..."
+          style={{ fontFamily: "monospace", fontSize: "0.8125rem", lineHeight: 1.6 }}
+        />
+        <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleImageUpload} />
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+        <div className="admin-form-group">
+          <label className="admin-form-label">Texto del Botón (opcional)</label>
+          <input className="admin-form-input" value={config.buttonText || ""} onChange={(e) => handleChange("buttonText", e.target.value)} placeholder="Ej: Conocer más" />
+        </div>
+        <div className="admin-form-group">
+          <label className="admin-form-label">Link del Botón</label>
+          <input className="admin-form-input" value={config.buttonLink || ""} onChange={(e) => handleChange("buttonLink", e.target.value)} placeholder="/productos" />
+        </div>
+      </div>
+    </div>
+  );
 }

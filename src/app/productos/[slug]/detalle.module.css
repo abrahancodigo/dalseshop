@@ -74,6 +74,12 @@
   margin-bottom: 1rem;
   box-shadow: 0 4px 20px rgba(0,0,0,0.06);
   position: relative;
+  animation: imageCrossFade 0.4s ease;
+}
+
+@keyframes imageCrossFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .mainImage img {
@@ -325,6 +331,18 @@
 
 .addBtn:active {
   transform: translateY(0);
+}
+
+.addBtnSuccess {
+  background: linear-gradient(135deg, #10B981, #059669) !important;
+  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3) !important;
+  animation: successPulse 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes successPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+  100% { transform: scale(1); }
 }
 
 .tags {

@@ -290,7 +290,7 @@ export async function getProducts(options = {}) {
     if (error.code === 'failed-precondition' || error.message.includes('index')) {
       console.warn("Products query failed (index missing?), falling back to client-side filtering.");
       try {
-        const q = query(collection(db, "products"), orderBy("createdAt", "desc"));
+        const q = query(collection(db, "products"), orderBy("createdAt", "desc"), limit(200));
         const snapshot = await getDocs(q);
         let products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         
@@ -550,7 +550,8 @@ export async function getRelatedProducts(categoryId, excludeProductId) {
     const q = query(
       collection(db, "products"),
       where("category", "==", categoryId),
-      where("isActive", "==", true)
+      where("isActive", "==", true),
+      limit(20)
     );
     const snapshot = await getDocs(q);
     const products = snapshot.docs.map(doc => ({
@@ -656,13 +657,26 @@ export async function getBlogPostBySlug(slug) {
 
 export async function getBlogPosts(publishedOnly = false) {
   try {
-    const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
+    let q;
+    if (publishedOnly) {
+      q = query(collection(db, "posts"), where("isPublished", "==", true), orderBy("createdAt", "desc"));
+    } else {
+      q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
+    }
     const snapshot = await getDocs(q);
-    const posts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    return publishedOnly ? posts.filter(p => p.isPublished === true) : posts;
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
-    console.error("Error fetching blog posts:", error);
-    return [];
+    console.warn("getBlogPosts ordered query failed, trying without order:", error.message);
+    try {
+      const q = publishedOnly
+        ? query(collection(db, "posts"), where("isPublished", "==", true))
+        : collection(db, "posts");
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (err2) {
+      console.error("Error fetching blog posts:", err2);
+      return [];
+    }
   }
 }
 
@@ -848,6 +862,31 @@ export async function getHomePage() {
   } catch (error) {
     console.error("Error fetching homepage:", error);
     return null;
+  }
+}
+
+/** Fetch published pages that should appear in the navigation menu */
+export async function getMenuPages() {
+  try {
+    const q = query(
+      collection(db, "pages"),
+      where("isPublished", "==", true),
+      where("showInMenu", "==", true)
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (error) {
+    console.warn(" getMenuPages query failed, trying fallback:", error.message);
+    try {
+      const q = query(collection(db, "pages"), where("isPublished", "==", true));
+      const snapshot = await getDocs(q);
+      return snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter(p => p.showInMenu === true);
+    } catch (err2) {
+      console.error("getMenuPages fallback failed:", err2);
+      return [];
+    }
   }
 }
 

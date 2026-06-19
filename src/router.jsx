@@ -18,6 +18,7 @@ import FacturacionPage from '@/app/facturacion/page'
 import DetalleFacturaPage from '@/app/facturacion/detalle/page'
 import InventarioPage from '@/app/inventario/page'
 import ControlAsistenciaPage from '@/app/control-asistencia/page'
+import PreviewPage from '@/app/preview/[id]/page'
 import LoginPage from '@/app/auth/login/page'
 
 import AdminDashboard from '@/app/admin/page'
@@ -60,6 +61,7 @@ export default function AppRouter() {
       <Route path="/facturacion/detalle" element={<DetalleFacturaPage />} />
       <Route path="/inventario" element={<InventarioPage />} />
       <Route path="/control-asistencia" element={<ControlAsistenciaPage />} />
+      <Route path="/preview/:id" element={<PreviewPage />} />
       <Route path="/auth/login" element={<LoginPage />} />
 
       <Route path="/admin" element={<AdminLayout />}>

@@ -4,11 +4,21 @@
   background: rgba(0, 0, 0, 0.5);
   z-index: 999;
   animation: fadeIn 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.overlay.closing {
+  animation: fadeOut 0.3s ease forwards;
 }
 
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
 }
 
 .drawer {
@@ -26,9 +36,18 @@
   box-shadow: -10px 0 40px rgba(0, 0, 0, 0.15);
 }
 
+.drawer.closing {
+  animation: slideOut 0.3s ease forwards;
+}
+
 @keyframes slideIn {
   from { transform: translateX(100%); }
   to { transform: translateX(0); }
+}
+
+@keyframes slideOut {
+  from { transform: translateX(0); }
+  to { transform: translateX(100%); }
 }
 
 .header {
@@ -92,6 +111,7 @@
 .items {
   flex: 1;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   padding: 1rem 1.5rem;
 }
 

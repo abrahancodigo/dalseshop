@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useCart } from "@/context/CartContext";
 import { useStore } from "@/context/StoreContext";
 import { formatPrice } from "@/lib/format";
@@ -28,12 +29,32 @@ export default function CartDrawer() {
   const { features } = useStore();
   const showPrices = features.showPrices !== false;
 
-  if (!isOpen) return null;
+  const [shouldRender, setShouldRender] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setShouldRender(true);
+      setIsClosing(false);
+    } else if (shouldRender) {
+      setIsClosing(true);
+      const timer = setTimeout(() => {
+        setShouldRender(false);
+        setIsClosing(false);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, shouldRender]);
+
+  if (!shouldRender) return null;
 
   return (
     <>
-      <div className={styles.overlay} onClick={() => setIsOpen(false)} />
-      <div className={styles.drawer}>
+      <div
+        className={`${styles.overlay} ${isClosing ? styles.closing : ""}`}
+        onClick={() => setIsOpen(false)}
+      />
+      <div className={`${styles.drawer} ${isClosing ? styles.closing : ""}`}>
         {/* Header */}
         <div className={styles.header}>
           <h2 className={styles.title}>
