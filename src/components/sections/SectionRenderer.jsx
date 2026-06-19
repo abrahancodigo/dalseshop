@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { getProducts, getFeaturedProducts, addSubscriber } from "@/lib/firestore";
 import { useCart } from "@/context/CartContext";
 import { useImage } from "@/context/ImageContext";
-import { useReveal } from "@/hooks/useReveal";
 import ProductCard from "@/components/store/ProductCard";
 import { sanitizeHtml } from "@/lib/sanitize";
 import { isYouTubeUrl, extractYouTubeId, getYouTubeEmbedUrl } from "@/lib/videoUtils";
@@ -513,7 +512,6 @@ function FeaturedProductsSection({ config }) {
   const [products, setProducts] = useState([]);
   const { addItem } = useCart();
   const limit = config.count || 4;
-  const [ref, isVisible] = useReveal();
 
   useEffect(() => {
     getFeaturedProducts(limit)
@@ -525,7 +523,7 @@ function FeaturedProductsSection({ config }) {
 
   if (products.length === 0) {
     return (
-      <section className={styles.sectionPlaceholder}>
+      <section className={styles.section}>
         <div className="container">
           {config.title && <h2 className={styles.sectionTitle}>{config.title}</h2>}
           <div className={styles.emptyGrid}>
@@ -538,11 +536,13 @@ function FeaturedProductsSection({ config }) {
     );
   }
 
+  const cols = Math.min(Math.max(Number(config.columns) || 4, 1), 6);
+
   return (
-    <section className={styles.section} ref={ref}>
-      <div className={`container reveal ${isVisible ? "revealed" : ""}`}>
+    <section className={styles.section}>
+      <div className="container">
         {config.title && <h2 className={styles.sectionTitle}>{config.title}</h2>}
-        <div className={styles.productGrid} style={{ "--grid-cols": config.columns || 4 }}>
+        <div className={styles.productGrid} style={{ "--grid-cols": cols }}>
           {products.map((p) => (
             <ProductCard key={p.id} product={p} onAddToCart={(product) => addItem(product)} />
           ))}
@@ -558,7 +558,7 @@ function FeaturedProductsSection({ config }) {
 function ProductGridSection({ config }) {
   const [products, setProducts] = useState([]);
   const { addItem } = useCart();
-  const [ref, isVisible] = useReveal();
+  const depsKey = useMemo(() => JSON.stringify({ category: config.category, brand: config.brand, count: config.count, productCodes: config.productCodes }), [config.category, config.brand, config.count, config.productCodes]);
 
   useEffect(() => {
     getProducts({
@@ -572,11 +572,11 @@ function ProductGridSection({ config }) {
       .catch((err) => {
         console.error("Error fetching product grid:", err);
       });
-  }, [config.category, config.brand, config.count, JSON.stringify(config.productCodes)]);
+  }, [depsKey]);
 
   if (products.length === 0) {
     return (
-      <section className={styles.sectionPlaceholder}>
+      <section className={styles.section}>
         <div className="container">
           {config.title && <h2 className={styles.sectionTitle}>{config.title}</h2>}
           <div style={{ textAlign: "center", padding: "3rem 1.5rem", background: "var(--color-surface)", borderRadius: "var(--border-radius)", border: "1px dashed var(--color-border)" }}>
@@ -592,11 +592,13 @@ function ProductGridSection({ config }) {
     );
   }
 
+  const cols = Math.min(Math.max(Number(config.columns) || 4, 1), 6);
+
   return (
-    <section className={styles.section} ref={ref}>
-      <div className={`container reveal ${isVisible ? "revealed" : ""}`}>
+    <section className={styles.section}>
+      <div className="container">
         {config.title && <h2 className={styles.sectionTitle}>{config.title}</h2>}
-        <div className={styles.productGrid} style={{ "--grid-cols": config.columns || 4 }}>
+        <div className={styles.productGrid} style={{ "--grid-cols": cols }}>
           {products.map((p) => (
             <ProductCard key={p.id} product={p} onAddToCart={(product) => addItem(product)} />
           ))}
@@ -724,11 +726,12 @@ function MediaTextSection({ config }) {
 function ImageGallerySection({ config }) {
   const { openImage } = useImage();
   if (!config.images?.length) return null;
+  const cols = Math.min(Math.max(Number(config.columns) || 3, 1), 6);
   return (
     <section className={styles.section}>
       <div className="container">
         {config.title && <h2 className={styles.sectionTitle}>{config.title}</h2>}
-        <div className={styles.gallery} style={{ gridTemplateColumns: `repeat(${config.columns || 3}, 1fr)` }}>
+        <div className={styles.gallery} style={{ "--grid-cols": cols }}>
           {config.images.map((img, i) => (
             <div key={i} className={styles.galleryItem} onClick={() => openImage(img)} style={{ cursor: "pointer" }} title="Click para ver imagen completa">
               <img src={img} alt={`Galería ${i + 1}`} />
