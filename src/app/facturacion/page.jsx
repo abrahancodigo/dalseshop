@@ -43,7 +43,14 @@ export default function FacturacionPage() {
   const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
-    if (!authLoading && !user) navigate("/auth/login");
+    if (!authLoading && !user) {
+      if (sessionStorage.getItem("auth_manual_logout") === "1") {
+        sessionStorage.removeItem("auth_manual_logout");
+        navigate("/", { replace: true });
+      } else {
+        navigate("/auth/login");
+      }
+    }
   }, [user, authLoading, navigate]);
 
   useEffect(() => {

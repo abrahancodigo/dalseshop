@@ -190,7 +190,15 @@ export default function InventarioPage() {
   const [importResult, setImportResult] = useState(null);
 
   useEffect(() => {
-    if (!authLoading && !user) { navigate("/auth/login"); return; }
+    if (!authLoading && !user) {
+      if (sessionStorage.getItem("auth_manual_logout") === "1") {
+        sessionStorage.removeItem("auth_manual_logout");
+        navigate("/", { replace: true });
+      } else {
+        navigate("/auth/login");
+      }
+      return;
+    }
     if (!authLoading && user && !inventoryAccess) { navigate("/facturacion"); return; }
   }, [user, authLoading, inventoryAccess, navigate]);
 

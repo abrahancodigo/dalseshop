@@ -42,7 +42,12 @@ export default function AdminLayout() {
   useEffect(() => {
     if (loading) return;
     if (!user || !isAdmin) {
-      navigate("/auth/login", { state: { from: pathname } });
+      if (sessionStorage.getItem("auth_manual_logout") === "1") {
+        sessionStorage.removeItem("auth_manual_logout");
+        navigate("/", { replace: true });
+      } else {
+        navigate("/auth/login", { state: { from: pathname } });
+      }
       return;
     }
     if (permissions) {

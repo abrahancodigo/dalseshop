@@ -33,6 +33,7 @@ export function AuthProvider({ children }) {
 
   const resolveUser = async (fbUser) => {
     if (fbUser) {
+      sessionStorage.removeItem("auth_manual_logout");
       setUser(fbUser);
       let doc = await getUserByEmail(fbUser.email);
       if (doc) {
@@ -182,6 +183,7 @@ export function AuthProvider({ children }) {
   };
 
   const logout = async () => {
+    sessionStorage.setItem("auth_manual_logout", "1");
     await signOut(auth);
   };
 

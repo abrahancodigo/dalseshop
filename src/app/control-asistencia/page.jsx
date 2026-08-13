@@ -233,7 +233,14 @@ export default function ControlAsistenciaPage() {
   }, []);
 
   useEffect(() => {
-    if (!authLoading && !user) navigate("/auth/login", { state: { from: pathname } });
+    if (!authLoading && !user) {
+      if (sessionStorage.getItem("auth_manual_logout") === "1") {
+        sessionStorage.removeItem("auth_manual_logout");
+        navigate("/", { replace: true });
+      } else {
+        navigate("/auth/login", { state: { from: pathname } });
+      }
+    }
     if (!authLoading && user && !payrollAccess) navigate("/auth/login", { state: { from: pathname } });
     if (user && payrollAccess) loadInitialData();
   }, [user, authLoading, payrollAccess, navigate, loadInitialData]);
