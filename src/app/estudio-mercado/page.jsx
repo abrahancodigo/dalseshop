@@ -1,15 +1,20 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { HiOutlineChartBar, HiOutlineClipboardDocumentList, HiOutlineClock, HiOutlinePhoto, HiOutlineArrowUpTray, HiOutlineTrash, HiOutlineMagnifyingGlass } from "react-icons/hi2";
+import { serverTimestamp } from "firebase/firestore";
+import { HiOutlineChartBar, HiOutlineClipboardDocumentList, HiOutlineClock, HiOutlinePhoto, HiOutlineArrowUpTray, HiOutlineTrash, HiOutlineMagnifyingGlass, HiOutlineFunnel, HiOutlineArrowDownTray, HiOutlineDocumentText, HiOutlineInformationCircle } from "react-icons/hi2";
 import StoreHeader from "@/components/store/Header";
 import StoreFooter from "@/components/store/Footer";
 import { useAuth } from "@/context/AuthContext";
 import { useImage } from "@/context/ImageContext";
+import { useStore } from "@/context/StoreContext";
 import { getProducts, getMarketResearch, saveMarketResearch, deleteMarketResearch } from "@/lib/firestore";
 import { uploadImage, deleteFile } from "@/lib/storage";
 import { formatPrice } from "@/lib/format";
+import * as XLSX from "xlsx";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 import styles from "./estudio-mercado.module.css";
 
 const COMPETITORS = [
@@ -27,6 +32,9 @@ const emptyCompetitors = () => Object.fromEntries(
 
 const makeDraft = (product, record) => ({
   id: record?.id || null,
+  createdAt: record?.createdAt || null,
+  updatedAt: record?.updatedAt || null,
+  status: record?.status || "draft",
   productId: product.id,
   productName: product.name || "",
   productSku: product.sku || product.barcode || "",
@@ -40,6 +48,22 @@ const getDifference = (dalsePrice, competitorPrice) => {
   const competitor = Number(competitorPrice);
   if (!competitor || !Number.isFinite(dalse)) return null;
   return ((dalse - competitor) / competitor) * 100;
+};
+
+const getRecordDate = (record) => {
+  const value = record?.updatedAt || record?.createdAt || record?.investigatedAt;
+  if (!value) return null;
+  return value?.toDate ? value.toDate() : new Date(value);
+};
+
+const getResearchStatus = (draft) => {
+  if (!draft?.id) return "pending";
+  const prices = COMPETITORS.map(({ key }) => draft.competitors?.[key]?.price);
+  const complete = prices.every((price) => Number(price) > 0);
+  const date = getRecordDate(draft);
+  const stale = date && Date.now() - date.getTime() > 30 * 24 * 60 * 60 * 1000;
+  if (stale) return "stale";
+  return complete ? "complete" : "partial";
 };
 
 const normalizeUrl = (value) => {
@@ -56,6 +80,7 @@ const normalizeUrl = (value) => {
 export default function EstudioMercadoPage() {
   const { user, hasPermission, canManage, role, loading: authLoading } = useAuth();
   const { openImage } = useImage();
+  const { categories, brands } = useStore();
   const navigate = useNavigate();
   const canView = hasPermission("marketResearch");
   const canEdit = canManage("marketResearch");
@@ -68,6 +93,12 @@ export default function EstudioMercadoPage() {
   const [savingId, setSavingId] = useState(null);
   const [uploadingKey, setUploadingKey] = useState("");
   const [message, setMessage] = useState("");
+  const [filterCategory, setFilterCategory] = useState("");
+  const [filterBrand, setFilterBrand] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [comparePeriod, setComparePeriod] = useState("");
+  const [comparisonDrafts, setComparisonDrafts] = useState({});
+  const [detailTarget, setDetailTarget] = useState(null);
 
   useEffect(() => {
     if (!authLoading && (!user || !canView)) navigate("/auth/login", { replace: true });
@@ -90,12 +121,43 @@ export default function EstudioMercadoPage() {
     return () => { cancelled = true; };
   }, [period, user, canView]);
 
+  useEffect(() => {
+    if (!user || !canView || !comparePeriod || comparePeriod === period) {
+      setComparisonDrafts({});
+      return;
+    }
+    getMarketResearch({ periodKey: comparePeriod }).then((records) => {
+      const map = {};
+      records.forEach((record) => { map[record.productId] = record; });
+      setComparisonDrafts(map);
+    });
+  }, [comparePeriod, period, user, canView]);
+
   const filteredProducts = useMemo(() => {
     const term = search.toLowerCase().trim();
-    if (!term) return products;
-    return products.filter((product) => [product.name, product.sku, product.barcode]
-      .some((value) => String(value || "").toLowerCase().includes(term)));
-  }, [products, search]);
+    return products.filter((product) => {
+      const matchesTerm = !term || [product.name, product.sku, product.barcode]
+        .some((value) => String(value || "").toLowerCase().includes(term));
+      const matchesCategory = !filterCategory || product.category === filterCategory;
+      const matchesBrand = !filterBrand || product.brand === filterBrand;
+      const status = getResearchStatus(drafts[product.id]);
+      const matchesStatus = filterStatus === "all" || status === filterStatus;
+      return matchesTerm && matchesCategory && matchesBrand && matchesStatus;
+    });
+  }, [products, search, filterCategory, filterBrand, filterStatus, drafts]);
+
+  const stats = useMemo(() => {
+    const values = Object.values(drafts);
+    const analyzed = values.filter((draft) => draft.id);
+    const differences = analyzed.flatMap((draft) => COMPETITORS.map(({ key }) => getDifference(draft.dalsePrice, draft.competitors?.[key]?.price)).filter((value) => value !== null));
+    return {
+      total: products.length,
+      analyzed: analyzed.length,
+      complete: analyzed.filter((draft) => getResearchStatus(draft) === "complete").length,
+      expensive: analyzed.filter((draft) => COMPETITORS.some(({ key }) => (getDifference(draft.dalsePrice, draft.competitors?.[key]?.price) || 0) > 0)).length,
+      averageDifference: differences.length ? differences.reduce((sum, value) => sum + value, 0) / differences.length : 0,
+    };
+  }, [drafts, products.length]);
 
   const updateDraft = (productId, updates) => {
     setDrafts((current) => ({
@@ -121,6 +183,7 @@ export default function EstudioMercadoPage() {
         periodKey: period,
         investigatedBy: user.email || user.uid,
         investigatedByUid: user.uid,
+        investigatedAt: serverTimestamp(),
       });
       updateDraft(product.id, { id });
       setMessage(`Estudio de ${product.name} guardado.`);
@@ -187,6 +250,59 @@ export default function EstudioMercadoPage() {
     }
   };
 
+  const reportRows = filteredProducts.map((product) => {
+    const draft = drafts[product.id] || makeDraft(product);
+    const row = {
+      Producto: product.name,
+      Codigo: product.sku || product.barcode || "",
+      Categoria: categories.find((item) => item.id === product.category)?.name || "",
+      Marca: brands.find((item) => item.id === product.brand)?.name || product.brand || "",
+      "Precio Dalse": Number(draft.dalsePrice) || 0,
+      Estado: getResearchStatus(draft),
+    };
+    COMPETITORS.forEach(({ key, label }) => {
+      const price = Number(draft.competitors?.[key]?.price) || 0;
+      row[label] = price;
+      row[`${label} %`] = getDifference(draft.dalsePrice, price) ?? "";
+    });
+    return row;
+  });
+
+  const exportExcel = () => {
+    if (!reportRows.length) return;
+    const worksheet = XLSX.utils.json_to_sheet(reportRows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, `Mercado ${period}`);
+    XLSX.writeFile(workbook, `Estudio_Mercado_${period}.xlsx`);
+  };
+
+  const exportPdf = () => {
+    if (!reportRows.length) return;
+    const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+    pdf.setFontSize(16);
+    pdf.text(`Estudio de Mercado - ${period}`, 14, 14);
+    autoTable(pdf, {
+      startY: 20,
+      head: [["Producto", "Código", "Dalse", ...COMPETITORS.flatMap(({ label }) => [label, "%"]) ]],
+      body: reportRows.map((row) => [row.Producto, row.Codigo, `$${formatPrice(row["Precio Dalse"])}`, ...COMPETITORS.flatMap(({ label }) => [row[label] ? `$${formatPrice(row[label])}` : "-", typeof row[`${label} %`] === "number" ? `${row[`${label} %`].toFixed(1)}%` : "-"]) ]),
+      styles: { fontSize: 7 },
+      headStyles: { fillColor: [79, 70, 229] },
+    });
+    pdf.save(`Estudio_Mercado_${period}.pdf`);
+  };
+
+  const comparisonSummary = useMemo(() => {
+    if (!comparePeriod || comparePeriod === period) return null;
+    const changes = products.map((product) => {
+      const current = drafts[product.id];
+      const previous = comparisonDrafts[product.id];
+      if (!current?.id || !previous) return null;
+      return Number(current.dalsePrice) - Number(previous.dalsePrice);
+    }).filter((value) => Number.isFinite(value));
+    if (!changes.length) return null;
+    return changes.reduce((sum, value) => sum + value, 0) / changes.length;
+  }, [comparePeriod, period, products, drafts, comparisonDrafts]);
+
   if (authLoading || !user || !canView) return <div className="loading-screen"><div className="spinner" /></div>;
 
   return (
@@ -206,9 +322,21 @@ export default function EstudioMercadoPage() {
 
         <div className={styles.toolbar}>
           <label className={styles.search}><HiOutlineMagnifyingGlass /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar por nombre, SKU o código..." /></label>
+          <select className={styles.filter} value={filterCategory} onChange={(event) => setFilterCategory(event.target.value)}><option value="">Todas las categorías</option>{categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>
+          <select className={styles.filter} value={filterBrand} onChange={(event) => setFilterBrand(event.target.value)}><option value="">Todas las marcas</option>{brands.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>
+          <select className={styles.filter} value={filterStatus} onChange={(event) => setFilterStatus(event.target.value)}><option value="all">Todos los estados</option><option value="complete">Completas</option><option value="partial">Parciales</option><option value="pending">Sin investigar</option><option value="stale">Vencidas</option></select>
           <span className={styles.counter}><HiOutlineClipboardDocumentList /> {filteredProducts.length} productos</span>
           {!canEdit && <span className={styles.readOnly}>Solo lectura</span>}
         </div>
+
+        <div className={styles.summaryGrid}>
+          <div className={styles.summaryCard}><span>Productos</span><strong>{stats.total}</strong></div>
+          <div className={styles.summaryCard}><span>Investigados</span><strong>{stats.analyzed}</strong><small>{stats.complete} completos</small></div>
+          <div className={styles.summaryCard}><span>Dalse más caro</span><strong>{stats.expensive}</strong><small>en al menos una competencia</small></div>
+          <div className={styles.summaryCard}><span>Diferencia promedio</span><strong className={stats.averageDifference > 0 ? styles.expensive : styles.cheaper}>{stats.averageDifference > 0 ? "+" : ""}{stats.averageDifference.toFixed(1)}%</strong><small>contra precios registrados</small></div>
+        </div>
+
+        <div className={styles.reportBar}><div><HiOutlineFunnel /><strong>Comparar períodos</strong><span>{comparisonSummary === null ? "Selecciona otro mes para ver cambios." : `Variación media del precio Dalse: ${comparisonSummary >= 0 ? "+" : ""}$${formatPrice(comparisonSummary)}`}</span></div><label>Mes anterior<input type="month" value={comparePeriod} onChange={(event) => setComparePeriod(event.target.value)} /></label><button onClick={exportExcel}><HiOutlineArrowDownTray /> Excel</button><button onClick={exportPdf}><HiOutlineDocumentText /> PDF</button></div>
 
         {message && <div className={styles.message}>{message}</div>}
 
@@ -244,7 +372,7 @@ export default function EstudioMercadoPage() {
                         </div>
                       </td>;
                     })}
-                    <td><div className={styles.actions}><button className={styles.saveButton} disabled={!canEdit || savingId === product.id} onClick={() => saveRow(product)}>{savingId === product.id ? "Guardando" : "Guardar"}</button><button className={styles.historyButton} onClick={() => openHistory(product)}><HiOutlineClock /> Historial</button>{(role === "admin" || role === "superadmin") && draft.id && <button className={styles.deleteButton} title="Eliminar período" onClick={() => removeResearch(product)}><HiOutlineTrash /></button>}</div></td>
+                    <td><div className={styles.actions}><span className={`${styles.status} ${styles[getResearchStatus(draft)]}`}>{({ complete: "Completa", partial: "Parcial", stale: "Vencida", pending: "Pendiente" })[getResearchStatus(draft)]}</span><button className={styles.saveButton} disabled={!canEdit || savingId === product.id} onClick={() => saveRow(product)}>{savingId === product.id ? "Guardando" : "Guardar"}</button><button className={styles.historyButton} onClick={() => openHistory(product)}><HiOutlineClock /> Historial</button><button className={styles.detailButton} onClick={() => setDetailTarget({ product, key: COMPETITORS[0].key })}><HiOutlineInformationCircle /> Detalles</button>{(role === "admin" || role === "superadmin") && draft.id && <button className={styles.deleteButton} title="Eliminar período" onClick={() => removeResearch(product)}><HiOutlineTrash /></button>}</div></td>
                   </tr>;
                 })}
               </tbody>
@@ -256,6 +384,8 @@ export default function EstudioMercadoPage() {
         <p className={styles.help}>Las capturas se pueden pegar directamente con <strong>Ctrl + V</strong> dentro de la evidencia del competidor. Los porcentajes comparan el precio Dalse congelado en este período.</p>
       </main>
       <StoreFooter />
+
+      {detailTarget && <div className={styles.modalBackdrop} onClick={() => setDetailTarget(null)}><section className={styles.detailModal} onClick={(event) => event.stopPropagation()}><button className={styles.modalClose} onClick={() => setDetailTarget(null)}>×</button><h2>Detalles de precios</h2><p className={styles.modalProduct}>{detailTarget.product.name}</p><div className={styles.competitorTabs}>{COMPETITORS.map(({ key, label }) => <button key={key} className={detailTarget.key === key ? styles.competitorTabActive : ""} onClick={() => setDetailTarget({ ...detailTarget, key })}>{label}</button>)}</div>{(() => { const item = drafts[detailTarget.product.id]?.competitors?.[detailTarget.key] || {}; return <div className={styles.detailForm}><label>Fuente o enlace<input value={item.sourceUrl || ""} disabled={!canEdit} placeholder="https://..." onChange={(event) => updateCompetitor(detailTarget.product.id, detailTarget.key, { sourceUrl: normalizeUrl(event.target.value) || event.target.value })} /></label><label>Sucursal / ubicación<input value={item.location || ""} disabled={!canEdit} onChange={(event) => updateCompetitor(detailTarget.product.id, detailTarget.key, { location: event.target.value })} /></label><label>Notas<textarea value={item.notes || ""} disabled={!canEdit} rows={4} onChange={(event) => updateCompetitor(detailTarget.product.id, detailTarget.key, { notes: event.target.value })} /></label>{item.sourceUrl && normalizeUrl(item.sourceUrl) && <a href={normalizeUrl(item.sourceUrl)} target="_blank" rel="noreferrer">Abrir fuente</a>}<button className={styles.saveButton} disabled={!canEdit || savingId === detailTarget.product.id} onClick={() => { saveRow(detailTarget.product); setDetailTarget(null); }}>Guardar detalles</button></div>; })()}</section></div>}
 
       {history && <div className={styles.modalBackdrop} onClick={() => setHistory(null)}><section className={styles.historyModal} onClick={(event) => event.stopPropagation()}><button className={styles.modalClose} onClick={() => setHistory(null)}>×</button><h2>Historial de {history.product.name}</h2>{history.loading ? <div className={styles.loading}><div className="spinner" /></div> : history.records.length === 0 ? <p>No hay investigaciones anteriores.</p> : <div className={styles.historyList}>{history.records.map((record) => <div className={styles.historyItem} key={record.id}><strong>{record.periodKey}</strong><span>Dalse: ${formatPrice(record.dalsePrice)}</span><span>{record.investigatedBy || "Usuario no registrado"}</span><div>{COMPETITORS.map(({ key, label }) => <span key={key}>{label}: {record.competitors?.[key]?.price ? `$${formatPrice(record.competitors[key].price)}` : "—"}</span>)}</div></div>)}</div>}</section></div>}
     </div>
