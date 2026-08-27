@@ -260,7 +260,8 @@ export default function EstudioMercadoPage() {
     const draft = drafts[product.id] || makeDraft(product);
     const row = {
       Producto: product.name,
-      Codigo: product.sku || product.barcode || "",
+      "Código de barras": product.barcode || "",
+      SKU: product.sku || "",
       Categoria: categories.find((item) => item.id === product.category)?.name || "",
       Marca: brands.find((item) => item.id === product.brand)?.name || product.brand || "",
       "Precio Dalse": Number(draft.dalsePrice) || 0,
@@ -291,8 +292,8 @@ export default function EstudioMercadoPage() {
     pdf.text(`Estudio de Mercado - ${period}`, 14, 14);
     autoTable(pdf, {
       startY: 20,
-      head: [["Producto", "Código", "Dalse", ...COMPETITORS.flatMap(({ label }) => [label, "%"]) ]],
-      body: reportRows.map((row) => [row.Producto, row.Codigo, `$${formatPrice(row["Precio Dalse"])}`, ...COMPETITORS.flatMap(({ label }) => [row[label] ? `$${formatPrice(row[label])}` : "-", typeof row[`${label} %`] === "number" ? `${row[`${label} %`].toFixed(1)}%` : "-"]) ]),
+      head: [["Producto", "Código de barras", "SKU", "Dalse", ...COMPETITORS.flatMap(({ label }) => [label, "%"]) ]],
+      body: reportRows.map((row) => [row.Producto, row["Código de barras"] || "-", row.SKU || "-", `$${formatPrice(row["Precio Dalse"])}`, ...COMPETITORS.flatMap(({ label }) => [row[label] ? `$${formatPrice(row[label])}` : "-", typeof row[`${label} %`] === "number" ? `${row[`${label} %`].toFixed(1)}%` : "-"]) ]),
       styles: { fontSize: 7 },
       headStyles: { fillColor: [79, 70, 229] },
     });
