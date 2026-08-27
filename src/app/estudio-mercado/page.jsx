@@ -354,7 +354,7 @@ export default function EstudioMercadoPage() {
                   return <tr key={product.id}>
                     <td className={styles.productCell}><div className={styles.productInfo}>
                       {product.images?.[0] ? <img src={product.images[0]} alt="" /> : <div className={styles.imagePlaceholder}><HiOutlinePhoto /></div>}
-                      <div><strong>{product.name}</strong><small>{product.sku || product.barcode || "Sin código"}</small><small>{product.description || ""}</small></div>
+                      <div><strong>{product.name}</strong><small>{product.sku || product.barcode || "Sin código"}</small></div>
                     </div></td>
                     <td><input className={styles.priceInput} type="number" min="0" step="0.01" disabled={!canEdit} value={draft.dalsePrice} onChange={(event) => updateDraft(product.id, { dalsePrice: event.target.value })} /></td>
                     {COMPETITORS.map(({ key }) => {
