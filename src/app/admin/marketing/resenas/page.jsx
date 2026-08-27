@@ -19,7 +19,7 @@ export default function ResenasPage() {
   useEffect(() => { loadReviews(); }, []);
 
   const loadReviews = async () => {
-    try { setReviews(await getReviews()); }
+    try { setReviews(await getReviews(null, true)); }
     catch (err) { console.error(err); }
     finally { setLoading(false); }
   };

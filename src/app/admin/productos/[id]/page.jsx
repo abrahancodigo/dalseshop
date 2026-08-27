@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import AdminHeader from "@/components/admin/AdminHeader";
 import { useAdminLayout } from "../../layout";
@@ -23,7 +23,7 @@ import {
 } from "react-icons/hi2";
 import adminStyles from "../../admin.module.css";
 import styles from "./editor.module.css";
-import ImageEditor from "@/components/admin/ImageEditor";
+const ImageEditor = lazy(() => import("@/components/admin/ImageEditor"));
 
 const emptyProduct = {
   name: "",
@@ -637,7 +637,7 @@ export default function ProductEditorPage() {
                   value={form.stock}
                   onChange={(e) => handleChange("stock", e.target.value)}
                   min={0}
-                  placeholder="0 = ilimitado"
+                  placeholder="Cantidad disponible"
                 />
               </div>
             </div>
@@ -707,12 +707,14 @@ export default function ProductEditorPage() {
 
       {/* Image Editor Modal for queue */}
       {editingQueue.length > 0 && (
-        <ImageEditor
-          file={editingQueue[0]}
-          onSave={handleEditorSave}
-          onCancel={handleEditorCancel}
-          key={editingQueue[0].name + editingQueue[0].lastModified}
-        />
+        <Suspense fallback={<div style={{ padding: '2rem', textAlign: 'center' }}>Cargando editor de imágenes...</div>}>
+          <ImageEditor
+            file={editingQueue[0]}
+            onSave={handleEditorSave}
+            onCancel={handleEditorCancel}
+            key={editingQueue[0].name + editingQueue[0].lastModified}
+          />
+        </Suspense>
       )}
     </>
   );

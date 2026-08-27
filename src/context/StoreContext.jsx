@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useMemo } from "react";
 import {
   getStoreSettings,
   getStoreTheme,
@@ -198,22 +198,22 @@ export function StoreProvider({ children }) {
     root.style.setProperty("--color-footer-text", theme.footerTextColor || theme.secondaryContrastColor || autoSecondaryText);
   }, [theme]);
 
+  const value = useMemo(() => ({
+    settings,
+    theme,
+    features,
+    navigation,
+    brands,
+    categories,
+    loading,
+    defaultSettings,
+    defaultTheme,
+    defaultFeatures,
+    defaultNavigation,
+  }), [settings, theme, features, navigation, brands, categories, loading, defaultSettings, defaultTheme, defaultFeatures, defaultNavigation]);
+
   return (
-    <StoreContext.Provider
-      value={{
-        settings,
-        theme,
-        features,
-        navigation,
-        brands,
-        categories,
-        loading,
-        defaultSettings,
-        defaultTheme,
-        defaultFeatures,
-        defaultNavigation,
-      }}
-    >
+    <StoreContext.Provider value={value}>
       {children}
     </StoreContext.Provider>
   );

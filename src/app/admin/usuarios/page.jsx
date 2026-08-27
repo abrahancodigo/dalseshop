@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import AdminHeader from "@/components/admin/AdminHeader";
 import { useAdminLayout } from "../layout";
 import { useAuth } from "@/context/AuthContext";
-import { getUsers, saveUser, deleteUser } from "@/lib/firestore";
+import { getUsers, saveManagedUser, deleteManagedUser } from "@/lib/firestore";
 import { ROLE_PERMISSIONS } from "@/lib/permissions";
 import {
   HiOutlineShieldCheck,
@@ -137,7 +137,7 @@ export default function UsuariosPage() {
           data.customPermissions = customPerms;
         }
       }
-      await saveUser(editId, data);
+      await saveManagedUser({ ...data, legacyId: editId });
       setShowModal(false);
       loadUsers();
     } catch (err) {
@@ -150,7 +150,7 @@ export default function UsuariosPage() {
 
   const handleDelete = async (id) => {
     try {
-      await deleteUser(id);
+      await deleteManagedUser(id);
       setDeleteConfirm(null);
       loadUsers();
     } catch (err) {

@@ -1,24 +1,32 @@
 "use client";
 
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useCallback, useMemo, useEffect } from "react";
 
 const ImageContext = createContext(null);
 
 export function ImageProvider({ children }) {
   const [imageSrc, setImageSrc] = useState(null);
+
+  useEffect(() => {
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, []);
   
-  const openImage = (src) => {
+  const openImage = useCallback((src) => {
     setImageSrc(src);
-    document.body.style.overflow = "hidden"; // Prevenir scroll
-  };
+    document.body.style.overflow = "hidden";
+  }, []);
   
-  const closeImage = () => {
+  const closeImage = useCallback(() => {
     setImageSrc(null);
     document.body.style.overflow = "";
-  };
+  }, []);
+
+  const value = useMemo(() => ({ imageSrc, openImage, closeImage }), [imageSrc, openImage, closeImage]);
 
   return (
-    <ImageContext.Provider value={{ imageSrc, openImage, closeImage }}>
+    <ImageContext.Provider value={value}>
       {children}
     </ImageContext.Provider>
   );

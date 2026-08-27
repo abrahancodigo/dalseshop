@@ -9,7 +9,7 @@ import { HiEnvelope, HiLockClosed, HiOutlineEye, HiOutlineEyeSlash } from "react
 import styles from "./login.module.css";
 
 export default function LoginPage() {
-  const { user, isAdmin, loginWithGoogle, registerWithEmail, loginWithEmail, resetPassword, loading, redirecting } = useAuth();
+  const { user, isAdmin, loginWithGoogle, registerWithEmail, loginWithEmail, resetPassword, loading, redirecting, authError } = useAuth();
   const { settings } = useStore();
   const navigate = useNavigate();
   const location = useLocation();
@@ -28,6 +28,13 @@ export default function LoginPage() {
       navigate(from, { replace: true });
     }
   }, [user, isAdmin, loading, redirecting, navigate, location.state?.from]);
+
+  useEffect(() => {
+    if (authError) {
+      setError(authError);
+      setSubmitting(false);
+    }
+  }, [authError]);
 
   const resetForm = () => {
     setError("");
@@ -63,8 +70,8 @@ export default function LoginPage() {
       const map = {
         "auth/email-already-in-use": "Este correo ya está registrado",
         "auth/invalid-email": "Correo inválido",
-        "auth/user-not-found": "No hay cuenta con este correo",
-        "auth/wrong-password": "Contraseña incorrecta",
+        "auth/user-not-found": "Correo o contraseña incorrectos",
+        "auth/wrong-password": "Correo o contraseña incorrectos",
         "auth/invalid-credential": "Correo o contraseña incorrectos",
         "auth/weak-password": "La contraseña debe tener al menos 6 caracteres",
         "auth/too-many-requests": "Demasiados intentos. Intenta más tarde",

@@ -7,6 +7,7 @@ import { ImageProvider } from "@/context/ImageContext";
 import CartDrawer from "@/components/store/CartDrawer";
 import ModalImage from "./ModalImage";
 import CookieConsent from "@/components/store/CookieConsent";
+import AuthTimingOverlay from "./AuthTimingOverlay";
 
 export default function Providers({ children }) {
   return (
@@ -18,6 +19,7 @@ export default function Providers({ children }) {
             <CartDrawer />
             <ModalImage />
             <CookieConsent />
+            <AuthTimingOverlay />
           </CartProvider>
         </StoreProvider>
       </AuthProvider>

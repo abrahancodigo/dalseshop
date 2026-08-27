@@ -32,7 +32,7 @@ function toast(msg, type) {
 }
 
 export default function FacturacionPage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, canManage } = useAuth();
   const { settings, features } = useStore();
   const showPricesVal = features.showPrices !== false;
   const navigate = useNavigate();
@@ -41,6 +41,7 @@ export default function FacturacionPage() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [filterTab, setFilterTab] = useState("all");
   const [modalOpen, setModalOpen] = useState(false);
+  const canCreateOrder = canManage("orders");
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -101,9 +102,11 @@ export default function FacturacionPage() {
                 {user.displayName || user.email?.split("@")[0] || "Usuario"}, aquí puedes gestionar tus comprobantes.
               </p>
             </div>
-            <button className={styles.newOrderBtn} onClick={() => setModalOpen(true)}>
-              <HiOutlinePlus size={20} /> Nuevo Pedido
-            </button>
+            {canCreateOrder && (
+              <button className={styles.newOrderBtn} onClick={() => setModalOpen(true)}>
+                <HiOutlinePlus size={20} /> Nuevo Pedido
+              </button>
+            )}
           </div>
 
           <div className={styles.tabs}>
@@ -140,7 +143,7 @@ export default function FacturacionPage() {
               <HiOutlineDocumentText size={48} />
               <h2>{filterTab === "all" ? "Aún no tienes pedidos" : "No hay pedidos en este estado"}</h2>
               <p>{filterTab === "all" ? "Cuando realices tu primera compra, aparecerá aquí." : "Prueba cambiando el filtro."}</p>
-              {filterTab === "all" && (
+              {filterTab === "all" && canCreateOrder && (
                 <button className={styles.shopBtn} onClick={() => setModalOpen(true)}>
                   Crear Nuevo Pedido
                 </button>
@@ -268,7 +271,7 @@ export default function FacturacionPage() {
         </div>
       )}
 
-      {modalOpen && (
+      {modalOpen && canCreateOrder && (
         <NuevoPedidoModal
           settings={settings}
           user={user}
@@ -371,7 +374,7 @@ function NuevoPedidoModal({ settings, user, onClose, onSuccess }) {
   };
 
   const addItem = (product) => {
-    const key = `${product.id}_`;
+    const key = product.id;
     const existing = items.find(i => i.key === key);
     if (existing) {
       setItems(items.map(i => i.key === key ? { ...i, quantity: i.quantity + 1 } : i));
@@ -445,8 +448,8 @@ function NuevoPedidoModal({ settings, user, onClose, onSuccess }) {
         invoice: wantsInvoice ? { wantsInvoice: true, ...invoiceData } : null,
       };
 
-      const { id, orderNumber } = await saveOrder(null, orderData);
-      const fullOrder = { ...orderData, id, orderNumber };
+      const { id, orderNumber, order: savedOrder } = await saveOrder(null, orderData);
+      const fullOrder = { ...orderData, ...savedOrder, id, orderNumber };
 
       try {
         await saveCustomer({
@@ -477,7 +480,7 @@ function NuevoPedidoModal({ settings, user, onClose, onSuccess }) {
         const doc = await generateOrderInvoice(fullOrder, settingsWithLogo, window.location.origin, { showPrices: showPricesVal });
         const pdfBase64 = doc.output("datauristring").split(",")[1];
         const sendOrderEmail = httpsCallable(functions, "sendOrderEmail");
-        await sendOrderEmail({ order: fullOrder, storeSettings: freshSettings, pdfBase64: pdfBase64 || "", showPrices: showPricesVal });
+        await sendOrderEmail({ orderId: id, order: fullOrder, storeSettings: freshSettings, pdfBase64: pdfBase64 || "", showPrices: showPricesVal });
       } catch (mailErr) {
         console.error("Email error:", mailErr);
       }

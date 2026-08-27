@@ -100,6 +100,8 @@ export default function InventarioPage() {
 
   const [activeTab, setActiveTab] = useState("productos");
   const [products, setProducts] = useState([]);
+  const productsRef = useRef(products);
+  useEffect(() => { productsRef.current = products; }, [products]);
   const [loading, setLoading] = useState(true);
   const [successMsg, setSuccessMsg] = useState("");
 
@@ -322,7 +324,7 @@ export default function InventarioPage() {
         setStockEdits(prev => ({ ...prev, [product.id]: String(product.stock || 0) }));
         return;
       }
-      await commitStockChange(product, val);
+      await commitStockChange(product.id, val);
     }
   };
 
@@ -332,18 +334,20 @@ export default function InventarioPage() {
       setStockEdits(prev => ({ ...prev, [product.id]: String(product.stock || 0) }));
       return;
     }
-    await commitStockChange(product, val);
+    await commitStockChange(product.id, val);
   };
 
-  const commitStockChange = async (product, newStock) => {
-    const prev = product.stock;
+  const commitStockChange = async (productId, newStock) => {
+    const latestProduct = productsRef.current.find(p => p.id === productId);
+    if (!latestProduct) return;
+    const prev = latestProduct.stock;
     if (newStock === prev) return;
     try {
       const type = newStock > prev ? "entrada" : newStock < prev ? "salida" : "ajuste";
-      await saveProduct(product.id, { stock: newStock });
-      setProducts(prev => prev.map(p => p.id === product.id ? { ...p, stock: newStock } : p));
+      await saveProduct(productId, { stock: newStock });
+      setProducts(prev => prev.map(p => p.id === productId ? { ...p, stock: newStock } : p));
       await saveInventoryMovement({
-        productId: product.id, productName: product.name, productSku: product.sku,
+        productId, productName: latestProduct.name, productSku: latestProduct.sku,
         type, quantity: Math.abs(newStock - prev), previousStock: prev, newStock,
         reason: "Ajuste desde inventario", userEmail: user?.email || "",
         reference: "", notes: "",
@@ -364,7 +368,7 @@ export default function InventarioPage() {
     const val = parseInt(stockEdits[product.id] || product.stock);
     const newVal = Math.max(0, (isNaN(val) ? product.stock : val) + delta);
     setStockEdits(prev => ({ ...prev, [product.id]: String(newVal) }));
-    commitStockChange(product, newVal);
+    commitStockChange(product.id, newVal);
   };
 
   // ===== PRODUCT EDIT MODAL =====
@@ -598,7 +602,8 @@ export default function InventarioPage() {
         if (!product) continue;
         const qty = parseInt(item.quantity);
         const sign = typeDef?.sign ?? 0;
-        const newStock = Math.max(0, (product.stock || 0) + qty * sign);
+        const newStock = (product.stock || 0) + qty * sign;
+        if (newStock < 0) { alert(`Stock insuficiente para "${product.name}". Stock actual: ${product.stock || 0}, solicitado: ${qty}`); return; }
         batch.update(doc(db, "products", item.productId), { stock: newStock });
         setProducts(prev => prev.map(p => p.id === item.productId ? { ...p, stock: newStock } : p));
         const movRef = doc(collection(db, "inventory_movements"));

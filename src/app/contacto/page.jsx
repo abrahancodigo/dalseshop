@@ -11,6 +11,8 @@ import { useState } from "react";
 
 export default function ContactoPage() {
   const { settings, loading } = useStore();
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
 
   if (loading) {
     return (
@@ -20,28 +22,17 @@ export default function ContactoPage() {
     );
   }
 
-  const [sending, setSending] = useState(false);
-  const [sent, setSent] = useState(false);
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSending(true);
     
     const formData = new FormData(e.target);
-    const data = {
-      name: formData.get("name"),
-      email: formData.get("email"),
-      message: formData.get("message"),
-      storeSettings: settings
-    };
-
     try {
       const sendContactEmail = httpsCallable(functions, "sendContactEmail");
       await sendContactEmail({
         name: formData.get("name"),
         email: formData.get("email"),
-        message: formData.get("message"),
-        storeSettings: settings
+        message: formData.get("message")
       });
       setSent(true);
       e.target.reset();

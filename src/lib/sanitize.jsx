@@ -15,14 +15,12 @@ export function sanitizeHtml(dirty, options = {}) {
  */
 export function formatDescription(text) {
   if (!text) return "";
-  // Si ya contiene etiquetas HTML, se renderiza tal cual (usó la toolbar)
   if (/<[a-z][\s\S]*>/i.test(text)) {
-    return text;
+    return sanitizeHtml(text);
   }
-  // Texto plano: convertir saltos de línea a HTML
   return text
-    .split(/\n{2,}/) // doble salto = nuevo párrafo
-    .map((p) => `<p>${p.replace(/\n/g, "<br>")}</p>`) // salto simple = <br>
+    .split(/\n{2,}/)
+    .map((p) => sanitizeHtml(`<p>${p.replace(/\n/g, "<br>")}</p>`))
     .join("");
 }
 

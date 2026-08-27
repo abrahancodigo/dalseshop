@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { getProducts, getFeaturedProducts, addSubscriber } from "@/lib/firestore";
 import { useCart } from "@/context/CartContext";
@@ -90,30 +90,38 @@ export default function SectionRenderer({ sections }) {
   );
 }
 
-function SectionErrorBoundary({ children, section }) {
-  const [hasError, setHasError] = useState(false);
-
-  useEffect(() => {
-    // Reset error when section changes
-    setHasError(false);
-  }, [section]);
-
-  if (hasError) {
-    return (
-      <div className={styles.sectionError}>
-        <div className="container">
-          <p>Ocurrió un error al cargar la sección: <strong>{section.type}</strong></p>
-        </div>
-      </div>
-    );
+class SectionErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
   }
 
-  try {
-    return children;
-  } catch (error) {
-    console.error("Section Error:", error, section);
-    setHasError(true);
-    return null;
+  componentDidUpdate(prevProps) {
+    if (prevProps.section !== this.props.section && this.state.hasError) {
+      this.setState({ hasError: false });
+    }
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error("Section Error:", error, this.props.section);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className={styles.sectionError}>
+          <div className="container">
+            <p>Ocurrió un error al cargar la sección: <strong>{this.props.section.type}</strong></p>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
   }
 }
 

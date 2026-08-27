@@ -6,8 +6,11 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "deploy": "npm run build && firebase deploy --only hosting,firestore:rules",
-    "deploy:functions": "npm run build && firebase deploy",
+    "check": "npm run build && npm --prefix functions run check",
+    "deploy": "npm run check && firebase deploy --only functions,firestore:rules,storage,hosting",
+    "deploy:functions": "npm --prefix functions run check && firebase deploy --only functions",
+    "deploy:preview": "npm run build && firebase hosting:channel:deploy preview --expires 7d",
+    "deploy:hosting": "npm run build && firebase deploy --only hosting",
     "deploy:rules": "firebase deploy --only firestore:rules,storage",
     "cleanup:storage": "node scripts/cleanup-storage.js",
     "cleanup:storage:dry": "node scripts/cleanup-storage.js --dry-run"
@@ -18,16 +21,16 @@
     "firebase": "^12.13.0",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
-    "nodemailer": "^9.0.5",
     "qrcode": "^1.5.4",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-icons": "^5.6.0",
     "react-router-dom": "^7.5.0",
-    "xlsx": "^0.18.5"
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.4.1",
+    "firebase-tools": "^15.28.2",
     "vite": "^6.3.5"
   }
 }

@@ -15,6 +15,16 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    emptyOutDir: true
+    emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          firebase: ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage', 'firebase/functions'],
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          pdf: ['jspdf', 'jspdf-autotable'],
+          excel: ['xlsx'],
+        },
+      },
+    },
   }
 })

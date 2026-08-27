@@ -16,7 +16,8 @@ import {
   writeBatch,
   runTransaction
 } from "firebase/firestore";
-import { db } from "./firebase";
+import { httpsCallable } from "firebase/functions";
+import { db, functions } from "./firebase";
 
 // =====================================================
 // SEARCH CACHES — prevents re-downloading entire
@@ -70,19 +71,19 @@ export async function getBrands() {
 
 export function onBrandsChange(callback) {
   const q = query(collection(db, "brands"), orderBy("order", "asc"));
-  let unsub = onSnapshot(q, (snapshot) => {
+  let currentUnsub = onSnapshot(q, (snapshot) => {
     callback(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
   }, (error) => {
     console.warn("Brands listener failed, trying without order:", error.message);
-    unsub();
-    unsub = onSnapshot(collection(db, "brands"), (snapshot) => {
+    currentUnsub();
+    currentUnsub = onSnapshot(collection(db, "brands"), (snapshot) => {
       callback(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     }, (err2) => {
       console.error("Brands fallback listener also failed:", err2);
     });
   });
 
-  return () => unsub();
+  return () => currentUnsub();
 }
 
 export async function saveBrand(id, data) {
@@ -144,19 +145,19 @@ export async function getCategories() {
 
 export function onCategoriesChange(callback) {
   const q = query(collection(db, "categories"), orderBy("order", "asc"));
-  let unsub = onSnapshot(q, (snapshot) => {
+  let currentUnsub = onSnapshot(q, (snapshot) => {
     callback(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
   }, (error) => {
     console.warn("Categories listener failed, trying without order:", error.message);
-    unsub();
-    unsub = onSnapshot(collection(db, "categories"), (snapshot) => {
+    currentUnsub();
+    currentUnsub = onSnapshot(collection(db, "categories"), (snapshot) => {
       callback(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     }, (err2) => {
       console.error("Categories fallback listener also failed:", err2);
     });
   });
 
-  return () => unsub();
+  return () => currentUnsub();
 }
 
 export async function saveCategory(id, data) {
@@ -242,7 +243,7 @@ export async function getProducts(options = {}) {
     if (options.productCodes && options.productCodes.length > 0) {
       const codes = options.productCodes.filter(c => c && c.trim()).map(c => c.trim().toLowerCase());
       if (codes.length > 0) {
-        const q = query(collection(db, "products"), where("isActive", "==", true));
+      const q = query(collection(db, "products"), where("isActive", "==", true), limit(200));
         const snapshot = await getDocs(q);
         let products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
@@ -340,13 +341,13 @@ export function onProductsChange(options = {}, callback) {
   const qWithConstraints = query(collection(db, "products"), ...constraints, orderBy("createdAt", "desc"));
   const mapDocs = (snapshot) => snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
 
-  let unsub = onSnapshot(qWithConstraints, (snapshot) => {
+  let currentUnsub = onSnapshot(qWithConstraints, (snapshot) => {
     callback(mapDocs(snapshot));
   }, (error) => {
     if (error.code === "failed-precondition" || error.message?.includes("index")) {
       console.warn("Products listener failed (index missing?), falling back to client-side filter.");
-      unsub();
-      unsub = onSnapshot(collection(db, "products"), (snapshot) => {
+      currentUnsub();
+      currentUnsub = onSnapshot(collection(db, "products"), (snapshot) => {
         let products = mapDocs(snapshot);
         if (options.isActive !== undefined) {
           products = products.filter((p) => p.isActive === options.isActive || String(p.isActive) === String(options.isActive));
@@ -361,7 +362,7 @@ export function onProductsChange(options = {}, callback) {
     console.error("Error in products listener:", error);
   });
 
-  return () => unsub();
+  return () => currentUnsub();
 }
 
 export async function getFeaturedProducts(limitCount = 4) {
@@ -458,20 +459,21 @@ export async function deleteProduct(id) {
   }
 }
 
-export async function getReviews(productId) {
+export async function getReviews(productId, includePending = false) {
     try {
       let q;
       if (productId) {
-        q = query(
-          collection(db, "reviews"),
-          where("productId", "==", productId),
-          orderBy("createdAt", "desc")
-        );
+        const constraints = [where("productId", "==", productId)];
+        if (!includePending) constraints.push(where("isApproved", "==", true));
+        constraints.push(orderBy("createdAt", "desc"));
+        q = query(collection(db, "reviews"), ...constraints);
       } else {
+        const constraints = [];
+        if (!includePending) constraints.push(where("isApproved", "==", true));
+        constraints.push(orderBy("createdAt", "desc"), limit(50));
         q = query(
           collection(db, "reviews"),
-          orderBy("createdAt", "desc"),
-          limit(50)
+          ...constraints
         );
       }
       const snapshot = await getDocs(q);
@@ -482,9 +484,11 @@ export async function getReviews(productId) {
     } catch (error) {
       console.warn("Reviews query failed, trying without order:", error.message);
       try {
-        let q = productId
-          ? query(collection(db, "reviews"), where("productId", "==", productId))
-          : query(collection(db, "reviews"), limit(50));
+        const constraints = [];
+        if (productId) constraints.push(where("productId", "==", productId));
+        if (!includePending) constraints.push(where("isApproved", "==", true));
+        constraints.push(limit(50));
+        let q = query(collection(db, "reviews"), ...constraints);
         const snapshot = await getDocs(q);
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       } catch (err) {
@@ -530,12 +534,14 @@ export async function saveReview(id, data) {
       }
       await updateDoc(reviewRef, reviewData);
     } else {
-      const newRef = await addDoc(collection(db, "reviews"), {
-        ...reviewData,
-        isApproved: data.isApproved === true,
-        createdAt: serverTimestamp(),
+      const submitReview = httpsCallable(functions, "submitReview");
+      const result = await submitReview({
+        productId: data.productId,
+        name: data.name,
+        rating: data.rating,
+        comment: data.comment,
       });
-      id = newRef.id;
+      return result.data?.id;
     }
     if (productId) await updateProductRatingStats(productId);
     return id;
@@ -567,15 +573,8 @@ export async function getRelatedProducts(categoryId, excludeProductId) {
 
 export async function addSubscriber(email) {
   try {
-    const q = query(collection(db, "subscribers"), where("email", "==", email));
-    const snapshot = await getDocs(q);
-    if (!snapshot.empty) {
-      throw new Error("Email already subscribed");
-    }
-    await addDoc(collection(db, "subscribers"), {
-      email,
-      subscribedAt: serverTimestamp()
-    });
+    const callable = httpsCallable(functions, "subscribeNewsletter");
+    await callable({ email });
   } catch (error) {
     console.error("Error adding subscriber:", error);
     throw error;
@@ -824,19 +823,19 @@ export async function getPages() {
 
 export function onPagesChange(callback) {
   const q = query(collection(db, "pages"), orderBy("updatedAt", "desc"));
-  let unsub = onSnapshot(q, (snapshot) => {
+  let currentUnsub = onSnapshot(q, (snapshot) => {
     callback(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
   }, (error) => {
     console.warn("Pages listener failed, trying without order:", error.message);
-    unsub();
-    unsub = onSnapshot(collection(db, "pages"), (snapshot) => {
+    currentUnsub();
+    currentUnsub = onSnapshot(collection(db, "pages"), (snapshot) => {
       callback(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     }, (err2) => {
       console.error("Pages fallback listener also failed:", err2);
     });
   });
 
-  return () => unsub();
+  return () => currentUnsub();
 }
 
 /** Efficient query that fetches ONLY the active homepage — not all pages */
@@ -1019,7 +1018,7 @@ export async function searchCustomers(searchTerm) {
     // Use cache to avoid re-downloading ALL customers on every keystroke
     const now = Date.now();
     if (!_customerSearchCache.data || now - _customerSearchCache.ts > SEARCH_CACHE_TTL) {
-      const snapshot = await getDocs(collection(db, "customers"));
+      const snapshot = await getDocs(query(collection(db, "customers"), orderBy("lastOrderAt", "desc"), limit(200)));
       _customerSearchCache = {
         data: snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })),
         ts: now
@@ -1151,61 +1150,22 @@ export async function getNextOrderNumber() {
 
 export async function saveOrder(id, data) {
   try {
+    if (!id) {
+      const createOrder = httpsCallable(functions, "createOrder");
+      const result = await createOrder(data);
+      invalidateProductsCache();
+      invalidateProductSearchCache();
+      return result.data;
+    }
+
     const docData = {
       ...data,
       customerEmail: data.customerEmail || data.customer?.email || "",
       updatedAt: serverTimestamp(),
     };
 
-    if (id) {
-      await updateDoc(doc(db, "orders", id), docData);
-      return { id };
-    }
-
-    const result = await runTransaction(db, async (transaction) => {
-      const items = data.items || [];
-      const stockUpdates = [];
-
-      for (const item of items) {
-        if (!item.productId) continue;
-        const productRef = doc(db, "products", item.productId);
-        const productSnap = await transaction.get(productRef);
-        if (!productSnap.exists()) {
-          throw new Error(`Producto no encontrado: ${item.name || item.productId}`);
-        }
-        const currentStock = Number(productSnap.data().stock) || 0;
-        const qty = Number(item.quantity) || 1;
-        if (currentStock < qty) {
-          throw new Error(`Stock insuficiente para "${item.name}". Disponible: ${currentStock}`);
-        }
-        stockUpdates.push({ productRef, newStock: currentStock - qty });
-      }
-
-      const counterRef = doc(db, "config", "orderCounter");
-      const counterSnap = await transaction.get(counterRef);
-      let orderNumber = 1;
-      if (counterSnap.exists()) {
-        orderNumber = (counterSnap.data().value || 0) + 1;
-      }
-      transaction.set(counterRef, { value: orderNumber }, { merge: true });
-
-      for (const { productRef, newStock } of stockUpdates) {
-        transaction.update(productRef, { stock: newStock, updatedAt: serverTimestamp() });
-      }
-
-      const orderRef = doc(collection(db, "orders"));
-      transaction.set(orderRef, {
-        ...docData,
-        orderNumber,
-        createdAt: serverTimestamp(),
-      });
-
-      return { id: orderRef.id, orderNumber };
-    });
-
-    invalidateProductsCache();
-    invalidateProductSearchCache();
-    return result;
+    await updateDoc(doc(db, "orders", id), docData);
+    return { id };
   } catch (error) {
     console.error("Error saving order:", error);
     throw error;
@@ -1846,4 +1806,21 @@ export async function deleteLoan(id) {
     console.error("Error deleting loan:", error);
     throw error;
   }
+}
+
+export async function ensureUserProfile() {
+  const callable = httpsCallable(functions, "ensureUserProfile");
+  const result = await callable();
+  return result.data;
+}
+
+export async function saveManagedUser(data) {
+  const callable = httpsCallable(functions, "saveManagedUser");
+  const result = await callable(data);
+  return result.data?.id;
+}
+
+export async function deleteManagedUser(uid) {
+  const callable = httpsCallable(functions, "deleteManagedUser");
+  await callable({ uid });
 }

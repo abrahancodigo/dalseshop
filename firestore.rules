@@ -1,89 +1,226 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
     function isSuperAdmin() {
-      return request.auth != null && request.auth.token.email == 'abrahanramos@gmail.com';
+      return signedIn() && request.auth.token.email == 'abrahanramos@gmail.com';
+    }
+
+    function hasProfile() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function profile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function activeProfile() {
+      return hasProfile() && profile().get('isActive', true) != false;
+    }
+
+    function role() {
+      return profile().get('role', 'lector');
+    }
+
+    function customPermission(permission) {
+      return profile().get('customPermissions', {}).get(permission, null);
+    }
+
+    function customAllowsManage(permission) {
+      return customPermission(permission) == true
+        || customPermission(permission) == 'manage';
+    }
+
+    function customDeniesManage(permission) {
+      return customPermission(permission) == false
+        || customPermission(permission) == 'view';
+    }
+
+    function customAllowsView(permission) {
+      return customPermission(permission) == true
+        || customPermission(permission) == 'view'
+        || customPermission(permission) == 'manage';
+    }
+
+    function roleCanManage(permission) {
+      return role() in ['superadmin', 'admin']
+        || (
+          role() == 'escritor'
+          && permission in ['pages', 'products', 'categories', 'brands', 'blog', 'inventory']
+        );
+    }
+
+    function canManage(permission) {
+      return isSuperAdmin()
+        || (
+          activeProfile()
+          && (
+            customAllowsManage(permission)
+            || (!customDeniesManage(permission) && roleCanManage(permission))
+          )
+        );
+    }
+
+    function roleCanView(permission) {
+      return role() in ['superadmin', 'admin']
+        || (
+          role() == 'escritor'
+          && permission in [
+            'dashboard', 'settings', 'theme', 'pages', 'navigation', 'products',
+            'categories', 'brands', 'orders', 'customers', 'coupons', 'blog',
+            'newsletter', 'reviews', 'shipping', 'features', 'inventory', 'payroll'
+          ]
+        );
+    }
+
+    function canView(permission) {
+      return isSuperAdmin()
+        || (
+          activeProfile()
+          && (
+            customAllowsView(permission)
+            || (customPermission(permission) != false && roleCanView(permission))
+          )
+        );
     }
 
     match /config/{document} {
-      allow read: if true;
-      allow write: if isSuperAdmin() || (request.auth != null && (document == 'payroll'));
-      allow create, update: if request.auth != null && document == 'orderCounter';
+      allow read: if canView(
+          document == 'theme' ? 'theme'
+          : document == 'navigation' ? 'navigation'
+          : document == 'features' ? 'features'
+          : document == 'shipping' ? 'shipping'
+          : document == 'blog' ? 'blog'
+          : document == 'payroll' ? 'payroll'
+          : document == 'orderCounter' ? 'orders'
+          : 'settings'
+        )
+        || document in ['settings', 'theme', 'features', 'navigation', 'blog', 'shipping'];
+      allow write: if canManage(
+        document == 'theme' ? 'theme'
+        : document == 'navigation' ? 'navigation'
+        : document == 'features' ? 'features'
+        : document == 'shipping' ? 'shipping'
+        : document == 'blog' ? 'blog'
+        : document == 'payroll' ? 'payroll'
+        : document == 'orderCounter' ? 'orders'
+        : 'settings'
+      );
     }
+
     match /products/{document} {
       allow read: if true;
-      allow write: if isSuperAdmin();
+      allow write: if canManage('products');
     }
+
     match /categories/{document} {
       allow read: if true;
-      allow write: if isSuperAdmin();
+      allow write: if canManage('categories');
     }
+
     match /brands/{document} {
       allow read: if true;
-      allow write: if isSuperAdmin();
+      allow write: if canManage('brands');
     }
+
     match /pages/{document} {
       allow read: if true;
-      allow write: if isSuperAdmin();
+      allow write: if canManage('pages');
     }
+
     match /coupons/{document} {
-      allow read: if isSuperAdmin();
-      allow write: if isSuperAdmin();
+      allow read: if canView('coupons');
+      allow write: if canManage('coupons');
     }
+
     match /reviews/{document} {
-      allow read: if true;
-      allow create: if request.resource.data.keys().hasAll(['name', 'rating', 'comment', 'productId']) 
-                     && request.resource.data.name is string 
-                     && request.resource.data.rating is number 
-                     && request.resource.data.comment is string;
-      allow update, delete: if isSuperAdmin();
+      allow read: if resource.data.isApproved == true || canView('reviews');
+      allow create: if false;
+      allow update, delete: if canManage('reviews');
     }
+
     match /posts/{document} {
       allow read: if true;
-      allow write: if isSuperAdmin();
+      allow write: if canManage('blog');
     }
+
     match /subscribers/{document} {
-      allow read: if isSuperAdmin();
-      allow create: if request.resource.data.keys().hasAll(['email']) && request.resource.data.email is string;
-      allow update, delete: if isSuperAdmin();
+      allow read: if canView('newsletter');
+      allow create: if false;
+      allow update, delete: if canManage('newsletter');
     }
+
     match /customers/{document} {
-      allow read: if isSuperAdmin();
-      allow create: if request.auth != null;
-      allow update, delete: if isSuperAdmin();
+      allow read: if canView('customers');
+      allow create, update, delete: if canManage('customers');
     }
+
     match /orders/{document} {
-      allow read: if isSuperAdmin() || request.auth.token.email == resource.data.customerEmail;
-      allow create: if request.auth != null;
-      allow update, delete: if isSuperAdmin();
-    }
-    match /users/{document} {
-      allow read: if isSuperAdmin() || request.auth.uid == document;
-      allow create: if request.auth != null
-        && request.resource.data.email == request.auth.token.email
-        && request.resource.data.keys().hasOnly(["email", "displayName", "photoURL", "role", "isActive", "createdAt", "updatedAt"])
-        && (
-          request.resource.data.role == "lector"
-          || request.auth.token.email == 'abrahanramos@gmail.com'
+      allow read: if canView('orders')
+        || (
+          signedIn()
+          && (
+            resource.data.userId == request.auth.uid
+            || resource.data.customerEmail == request.auth.token.email
+          )
         );
-      allow update: if isSuperAdmin() || request.auth.uid == document;
+      allow create: if false;
+      allow update, delete: if canManage('orders');
+    }
+
+    match /users/{document} {
+      allow read: if isSuperAdmin()
+        || (signedIn() && request.auth.uid == document)
+        || canManage('users');
+      allow create: if signedIn()
+        && request.auth.uid == document
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.keys().hasOnly([
+          'email', 'displayName', 'photoURL', 'role', 'isActive',
+          'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.role == 'lector';
+      allow update: if isSuperAdmin()
+        || (
+          signedIn()
+          && request.auth.uid == document
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['displayName', 'photoURL', 'updatedAt'])
+        );
       allow delete: if isSuperAdmin();
     }
+
     match /inventory_movements/{document} {
-      allow read: if request.auth != null;
-      allow create, update, delete: if isSuperAdmin();
+      allow read: if canView('inventory');
+      allow create, update, delete: if canManage('inventory');
     }
+
     match /employees/{document} {
-      allow read, write: if isSuperAdmin();
+      allow read: if canView('payroll');
+      allow write: if canManage('payroll');
     }
+
     match /attendance_records/{document} {
-      allow read, write: if isSuperAdmin();
+      allow read: if canView('payroll');
+      allow write: if canManage('payroll');
     }
+
     match /payroll_periods/{document} {
-      allow read, write: if isSuperAdmin();
+      allow read: if canView('payroll');
+      allow write: if canManage('payroll');
     }
+
     match /loans/{document} {
-      allow read, write: if isSuperAdmin();
+      allow read: if canView('payroll');
+      allow write: if canManage('payroll');
+    }
+
+    match /rate_limits/{document} {
+      allow read, write: if false;
     }
   }
 }

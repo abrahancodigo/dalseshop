@@ -110,6 +110,7 @@ export default function CheckoutPage() {
         customer: { name: form.name, email: form.email, phone: form.phone, address: form.address, city: form.city, state: form.state, zipCode: form.zipCode },
         userId: user ? user.uid : null,
         notes: form.notes, status: "pending", paymentMethod: "cashOnDelivery", paymentStatus: "pending",
+        shippingZone: selectedZone,
         invoice: form.wantsInvoice ? {
           wantsInvoice: true,
           businessName: form.businessName,
@@ -119,7 +120,8 @@ export default function CheckoutPage() {
         } : null,
       };
 
-      const { id, orderNumber } = await saveOrder(null, orderData);
+      const { id, orderNumber, order: savedOrder } = await saveOrder(null, orderData);
+      const fullOrder = { ...orderData, ...savedOrder, id, orderNumber };
       setOrderId(id);
       setOrderNumber(orderNumber);
       
@@ -129,7 +131,7 @@ export default function CheckoutPage() {
         try {
           const logoBase64 = await prepareLogoForPDF(settings?.logoBase64 || settings?.logo);
           const origin = window.location.origin;
-          const doc = await generateOrderInvoice({ ...orderData, id }, { ...settings, logo: logoBase64 }, origin, { showPrices: showPricesVal });
+          const doc = await generateOrderInvoice(fullOrder, { ...settings, logo: logoBase64 }, origin, { showPrices: showPricesVal });
           pdfBase64 = doc.output("datauristring").split(",")[1];
         } catch (pdfErr) {
           console.error("Error al generar PDF de factura:", pdfErr);
@@ -140,7 +142,8 @@ export default function CheckoutPage() {
         try {
           const sendOrderEmail = httpsCallable(functions, "sendOrderEmail");
           await sendOrderEmail({
-            order: { ...orderData, id },
+            orderId: id,
+            order: fullOrder,
             storeSettings: freshSettings,
             pdfBase64: pdfBase64 || "",
             showPrices: showPricesVal,

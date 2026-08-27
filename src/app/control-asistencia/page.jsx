@@ -10,7 +10,7 @@ import {
   softDeletePayrollPeriod, restorePayrollPeriod, getTrashedPayrollPeriods,
   getLoans, saveLoan, deleteLoan
 } from "@/lib/firestore";
-import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, updateDoc, serverTimestamp, writeBatch, collection } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { useStore } from "@/context/StoreContext";
@@ -561,6 +561,9 @@ export default function ControlAsistenciaPage() {
         const empLoans = activeLoans.filter(l => l.employeeId === emp.id && l.remainingBalance > 0);
         const totalLoanDeductions = empLoans.reduce((s, l) => s + Math.min(l.cuotaVal, l.remainingBalance), 0);
 
+        const empInPeriod = selectedPeriodDetail?.employees?.find(e => e.employeeId === emp.id);
+        const extraDeductions = (empInPeriod?.deductions || []).reduce((s, d) => s + (d.amount || 0), 0);
+
         return {
           employeeId: emp.id, employeeName: emp.name,
           scheduledHours: totalScheduledMin / 60, actualHours: totalActualMin / 60,
@@ -568,9 +571,9 @@ export default function ControlAsistenciaPage() {
           daysPresent, daysAbsent, daysPaidLeave,
           absentDeduction, tardinessDeduction,
           isss: isssDeduction, afp: afpDeduction, isr: isrDeduction,
-          totalLoanDeductions, totalExtraDeductions: 0,
-          totalDeductions: isssDeduction + afpDeduction + isrDeduction + absentDeduction + tardinessDeduction + totalLoanDeductions,
-          netPay: Math.max(0, baseSalary + overtimePay - isssDeduction - afpDeduction - isrDeduction - absentDeduction - tardinessDeduction - totalLoanDeductions)
+          totalLoanDeductions, totalExtraDeductions: extraDeductions,
+          totalDeductions: isssDeduction + afpDeduction + isrDeduction + absentDeduction + tardinessDeduction + totalLoanDeductions + extraDeductions,
+          netPay: Math.max(0, baseSalary + overtimePay - isssDeduction - afpDeduction - isrDeduction - absentDeduction - tardinessDeduction - totalLoanDeductions - extraDeductions)
         };
       });
 
@@ -1102,6 +1105,7 @@ export default function ControlAsistenciaPage() {
     }
     setLoading(true);
     try {
+      const batch = writeBatch(db);
       const activeLoans = await getLoans();
       for (const emp of period.employees || []) {
         if (emp.loanDeductions && emp.loanDeductions.length > 0) {
@@ -1111,27 +1115,26 @@ export default function ControlAsistenciaPage() {
               const updatedRemaining = Math.max(0, loan.remainingBalance - deduction.amount);
               const updatedPaidCuotas = loan.paidCuotas + 1;
               const updatedStatus = updatedRemaining <= 0 ? "completed" : "active";
-              
-              await saveLoan(loan.id, {
-                ...loan,
+              batch.update(doc(db, "loans", loan.id), {
                 remainingBalance: updatedRemaining,
                 paidCuotas: updatedPaidCuotas,
-                status: updatedStatus
+                status: updatedStatus,
+                updatedAt: serverTimestamp()
               });
             }
           }
         }
       }
 
-      const updatedPeriod = {
-        ...period,
+      batch.update(doc(db, "payroll_periods", period.id), {
         status: "paid",
         paidAt: serverTimestamp()
-      };
-      await savePayrollPeriod(period.id, updatedPeriod);
+      });
+
+      await batch.commit();
       showToast("Planilla pagada con éxito. Saldos de préstamos actualizados.");
       await loadInitialData();
-      setSelectedPeriodDetail(updatedPeriod);
+      setSelectedPeriodDetail({ ...period, status: "paid" });
     } catch (e) {
       console.error(e);
       alert("Error al pagar la planilla: " + e.message);

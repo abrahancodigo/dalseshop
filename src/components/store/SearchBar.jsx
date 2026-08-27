@@ -44,17 +44,23 @@ export default function SearchBar({ onResultClick, autoFocus = false }) {
       return;
     }
 
+    let cancelled = false;
+
     const delayDebounceFn = setTimeout(async () => {
       setLoading(true);
       setIsOpen(true);
       const data = await searchProducts(query);
+      if (cancelled) return;
       setResults(data);
       setLoading(false);
       setHasSearched(true);
       setIsOpen(true);
     }, 400);
 
-    return () => clearTimeout(delayDebounceFn);
+    return () => {
+      cancelled = true;
+      clearTimeout(delayDebounceFn);
+    };
   }, [query]);
 
   const handleClear = () => {

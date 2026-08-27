@@ -51,7 +51,7 @@ export default function ProductosPage() {
    const loadRatings = async (prods) => {
       const map = {};
       try {
-        const allReviews = await getReviews();
+        const allReviews = await getReviews(null, true);
         allReviews.forEach((r) => {
           if (!r.isApproved) return;
           if (!map[r.productId]) map[r.productId] = { sum: 0, count: 0 };

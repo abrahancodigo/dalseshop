@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
 
 const CartContext = createContext(null);
 
@@ -25,7 +25,7 @@ export function CartProvider({ children }) {
     localStorage.setItem("dalseshop_cart", JSON.stringify(items));
   }, [items]);
 
-  const addItem = (product, quantity = 1, variant = null) => {
+  const addItem = useCallback((product, quantity = 1, variant = null) => {
     setItems((prev) => {
       const key = variant ? `${product.id}_${variant}` : product.id;
       const existingIndex = prev.findIndex((item) => item.key === key);
@@ -54,13 +54,13 @@ export function CartProvider({ children }) {
         },
       ];
     });
-  };
+  }, []);
 
-  const removeItem = (key) => {
+  const removeItem = useCallback((key) => {
     setItems((prev) => prev.filter((item) => item.key !== key));
-  };
+  }, []);
 
-  const updateQuantity = (key, quantity) => {
+  const updateQuantity = useCallback((key, quantity) => {
     if (quantity <= 0) {
       removeItem(key);
       return;
@@ -68,32 +68,32 @@ export function CartProvider({ children }) {
     setItems((prev) =>
       prev.map((item) => (item.key === key ? { ...item, quantity } : item))
     );
-  };
+  }, [removeItem]);
 
-  const clearCart = () => {
+  const clearCart = useCallback(() => {
     setItems([]);
-  };
+  }, []);
 
-  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
-  const totalPrice = items.reduce(
+  const totalItems = useMemo(() => items.reduce((sum, item) => sum + item.quantity, 0), [items]);
+  const totalPrice = useMemo(() => items.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
-  );
+  ), [items]);
+
+  const value = useMemo(() => ({
+    items,
+    isOpen,
+    setIsOpen,
+    addItem,
+    removeItem,
+    updateQuantity,
+    clearCart,
+    totalItems,
+    totalPrice,
+  }), [items, isOpen, addItem, removeItem, updateQuantity, clearCart, totalItems, totalPrice]);
 
   return (
-    <CartContext.Provider
-      value={{
-        items,
-        isOpen,
-        setIsOpen,
-        addItem,
-        removeItem,
-        updateQuantity,
-        clearCart,
-        totalItems,
-        totalPrice,
-      }}
-    >
+    <CartContext.Provider value={value}>
       {children}
     </CartContext.Provider>
   );

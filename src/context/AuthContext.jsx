@@ -12,7 +12,7 @@ import {
   sendPasswordResetEmail,
 } from "firebase/auth";
 import { auth, googleProvider, SUPER_ADMIN_EMAIL } from "@/lib/firebase";
-import { getUserByEmail, saveUser } from "@/lib/firestore";
+import { ensureUserProfile, getUserById, saveUser } from "@/lib/firestore";
 import { ROLE_PERMISSIONS, hasPermission, canManage } from "@/lib/permissions";
 
 const AuthContext = createContext(null);
@@ -20,7 +20,19 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const authTimingRef = useRef(null);
+  const [authTiming, setAuthTiming] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem("auth_timing");
+      const timing = saved ? JSON.parse(saved) : null;
+      authTimingRef.current = timing;
+      return timing;
+    } catch {
+      return null;
+    }
+  });
   const [isAdmin, setIsAdmin] = useState(false);
+  const [authError, setAuthError] = useState("");
   const [userDoc, setUserDoc] = useState(null);
   const [permissions, setPermissions] = useState(null);
   const [role, setRole] = useState(null);
@@ -31,11 +43,57 @@ export function AuthProvider({ children }) {
   const unsubscribeRef = useRef(null);
   const isRegisteringRef = useRef(false);
 
+  const updateAuthTiming = (updates) => {
+    const current = authTimingRef.current;
+    if (!current) return;
+
+    const next = {
+      ...current,
+      ...updates,
+      totalMs: Date.now() - current.startedAt,
+    };
+    authTimingRef.current = next;
+    sessionStorage.setItem("auth_timing", JSON.stringify(next));
+    setAuthTiming(next);
+  };
+
+  const startAuthTiming = () => {
+    const timing = {
+      startedAt: Date.now(),
+      phase: "Autenticando...",
+      requestMs: null,
+      profileMs: null,
+      totalMs: 0,
+    };
+    authTimingRef.current = timing;
+    sessionStorage.setItem("auth_timing", JSON.stringify(timing));
+    setAuthTiming(timing);
+  };
+
   const resolveUser = async (fbUser) => {
     if (fbUser) {
       sessionStorage.removeItem("auth_manual_logout");
       setUser(fbUser);
-      let doc = await getUserByEmail(fbUser.email);
+      // User documents are keyed by Firebase Auth UID. Reading the document
+      // directly is faster than a collection query and matches Firestore rules.
+      let doc = await getUserById(fbUser.uid);
+      if (!doc) {
+        try {
+          doc = await ensureUserProfile();
+        } catch (error) {
+          console.warn("Could not ensure server user profile, using local fallback:", error.message);
+        }
+      }
+      if (doc?.isActive === false) {
+        setAuthError("Esta cuenta está inactiva. Contacta al administrador.");
+        setUser(null);
+        setUserDoc(null);
+        setPermissions(null);
+        setRole(null);
+        setIsAdmin(false);
+        await signOut(auth);
+        return;
+      }
       if (doc) {
         // Determine role: use existing valid role or default to "lector"
         const validRoles = ["superadmin", "admin", "escritor", "lector"];
@@ -106,25 +164,39 @@ export function AuthProvider({ children }) {
     let active = true;
 
     const init = async () => {
-      // 1. Check if we're returning from a Google redirect
-      try {
-        const result = await getRedirectResult(auth);
-        if (result) {
-          console.log("Redirect login successful for:", result.user.email);
+      // Only wait for a redirect result when this browser actually initiated
+      // a Google redirect. Waiting on every normal email/password login adds
+      // an unnecessary delay before the auth listener is registered.
+      const redirectPending = sessionStorage.getItem("auth_redirect_pending") === "1";
+      if (redirectPending) {
+        try {
+          const result = await getRedirectResult(auth);
+          if (result) {
+            console.log("Redirect login successful for:", result.user.email);
+          }
+        } catch (err) {
+          console.error("Redirect login error:", err);
+        } finally {
+          sessionStorage.removeItem("auth_redirect_pending");
+          if (active) setRedirecting(false);
         }
-      } catch (err) {
-        console.error("Redirect login error:", err);
-      } finally {
-        // Clear the pending flag regardless of outcome
-        sessionStorage.removeItem("auth_redirect_pending");
-        if (active) setRedirecting(false);
+      } else if (active) {
+        setRedirecting(false);
       }
 
-      // 2. Now subscribe to auth state — Firebase has already processed the redirect
+      // Subscribe immediately for normal logins. The role lookup still
+      // completes before loading ends, so protected routes remain protected.
       const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
         if (!active) return;
         if (!isRegisteringRef.current) {
+          const profileStartedAt = Date.now();
           await resolveUser(fbUser);
+          if (fbUser) {
+            updateAuthTiming({
+              phase: "Completado",
+              profileMs: Date.now() - profileStartedAt,
+            });
+          }
         }
         if (active) setLoading(false);
       });
@@ -142,8 +214,14 @@ export function AuthProvider({ children }) {
   }, []);
 
   const loginWithGoogle = async () => {
+    setAuthError("");
+    startAuthTiming();
     try {
       await signInWithPopup(auth, googleProvider);
+      updateAuthTiming({
+        phase: authTimingRef.current.profileMs == null ? "Credenciales verificadas" : authTimingRef.current.phase,
+        requestMs: Date.now() - authTimingRef.current.startedAt,
+      });
     } catch (error) {
       if (
         error.code === "auth/popup-blocked" ||
@@ -175,7 +253,18 @@ export function AuthProvider({ children }) {
   };
 
   const loginWithEmail = async (email, password) => {
-    await signInWithEmailAndPassword(auth, email, password);
+    setAuthError("");
+    startAuthTiming();
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      updateAuthTiming({
+        phase: authTimingRef.current.profileMs == null ? "Credenciales verificadas" : authTimingRef.current.phase,
+        requestMs: Date.now() - authTimingRef.current.startedAt,
+      });
+    } catch (error) {
+      updateAuthTiming({ phase: "Error de autenticación" });
+      throw error;
+    }
   };
 
   const resetPassword = async (email) => {
@@ -197,6 +286,8 @@ export function AuthProvider({ children }) {
         userDoc,
         permissions,
         role,
+        authError,
+        authTiming,
         hasPermission: (perm) => hasPermission(permissions, perm),
         canManage: (perm) => canManage(permissions, perm),
         loginWithGoogle,

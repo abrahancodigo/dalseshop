@@ -1,10 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, lazy, Suspense } from "react";
 import { uploadImage, deleteFile } from "@/lib/storage";
 import { HiOutlineCloudArrowUp, HiOutlineXMark } from "react-icons/hi2";
-import ImageEditor from "./ImageEditor";
 import styles from "./ImageUploader.module.css";
+const ImageEditor = lazy(() => import("./ImageEditor"));
 
 export default function ImageUploader({
   value,
@@ -137,11 +137,13 @@ export default function ImageUploader({
 
       {/* Image Editor Modal */}
       {editingFile && (
-        <ImageEditor
-          file={editingFile}
-          onSave={handleEditorSave}
-          onCancel={handleEditorCancel}
-        />
+        <Suspense fallback={<div className={styles.uploadBox}><p>Cargando editor...</p></div>}>
+          <ImageEditor
+            file={editingFile}
+            onSave={handleEditorSave}
+            onCancel={handleEditorCancel}
+          />
+        </Suspense>
       )}
     </div>
   );
