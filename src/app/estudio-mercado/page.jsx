@@ -388,7 +388,8 @@ export default function EstudioMercadoPage() {
           </div>
         )}
 
-        {!loading && filteredProducts.length === 0 && <div className={styles.empty}>No hay productos que coincidan con la búsqueda.</div>}
+         {!loading && filteredProducts.length > 0 && <div className={styles.pagination}><span>Mostrando {visibleProducts.length} de {filteredProducts.length}</span><label>Filas<select value={pageSize} onChange={(event) => setPageSize(Number(event.target.value))}><option value={25}>25</option><option value={50}>50</option><option value={100}>100</option><option value={0}>Todas</option></select></label><button disabled={currentPage <= 1} onClick={() => setCurrentPage((page) => page - 1)}>Anterior</button><strong>Página {currentPage} de {totalPages}</strong><button disabled={currentPage >= totalPages} onClick={() => setCurrentPage((page) => page + 1)}>Siguiente</button></div>}
+         {!loading && filteredProducts.length === 0 && <div className={styles.empty}>No hay productos que coincidan con la búsqueda.</div>}
         <p className={styles.help}>Las capturas se pueden pegar directamente con <strong>Ctrl + V</strong> dentro de la evidencia del competidor. Los porcentajes comparan el precio Dalse congelado en este período.</p>
       </main>
       <StoreFooter />
