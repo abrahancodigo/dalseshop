@@ -265,7 +265,6 @@ export default function EstudioMercadoPage() {
       Categoria: categories.find((item) => item.id === product.category)?.name || "",
       Marca: brands.find((item) => item.id === product.brand)?.name || product.brand || "",
       "Precio Dalse": Number(draft.dalsePrice) || 0,
-      Estado: getResearchStatus(draft),
     };
     COMPETITORS.forEach(({ key, label }) => {
       const price = Number(draft.competitors?.[key]?.price) || 0;
@@ -345,7 +344,7 @@ export default function EstudioMercadoPage() {
           <div className={styles.summaryCard}><span>Diferencia promedio</span><strong className={stats.averageDifference > 0 ? styles.expensive : styles.cheaper}>{stats.averageDifference > 0 ? "+" : ""}{stats.averageDifference.toFixed(1)}%</strong><small>contra precios registrados</small></div>
         </div>
 
-        <div className={styles.reportBar}><div><HiOutlineFunnel /><strong>Comparar períodos</strong><span>{comparisonSummary === null ? "Selecciona otro mes para ver cambios." : `Variación media del precio Dalse: ${comparisonSummary >= 0 ? "+" : ""}$${formatPrice(comparisonSummary)}`}</span></div><label>Mes anterior<input type="month" value={comparePeriod} onChange={(event) => setComparePeriod(event.target.value)} /></label><button onClick={exportExcel}><HiOutlineArrowDownTray /> Excel</button><button onClick={exportPdf}><HiOutlineDocumentText /> PDF</button></div>
+         <div className={styles.reportBar}><div><HiOutlineFunnel /><strong>Comparar períodos</strong><span>{comparisonSummary === null ? "Selecciona otro mes para ver cambios." : `Variación media del precio Dalse: ${comparisonSummary >= 0 ? "+" : ""}$${formatPrice(comparisonSummary)}`}</span></div><div className={styles.reportActions}><label>Fecha a comparar<input type="date" value={comparePeriod ? `${comparePeriod}-01` : ""} max={`${period}-01`} onChange={(event) => setComparePeriod(event.target.value ? event.target.value.slice(0, 7) : "")} /></label><button onClick={exportExcel}><HiOutlineArrowDownTray /> Excel</button><button onClick={exportPdf}><HiOutlineDocumentText /> PDF</button>{!loading && filteredProducts.length > 0 && <div className={`${styles.pagination} ${styles.paginationTop}`}><span>Mostrando {visibleProducts.length} de {filteredProducts.length}</span><label>Filas<select value={pageSize} onChange={(event) => setPageSize(Number(event.target.value))}><option value={25}>25</option><option value={50}>50</option><option value={100}>100</option><option value={0}>Todas</option></select></label><button disabled={currentPage <= 1} onClick={() => setCurrentPage((page) => page - 1)}>Anterior</button><strong>Página {currentPage} de {totalPages}</strong><button disabled={currentPage >= totalPages} onClick={() => setCurrentPage((page) => page + 1)}>Siguiente</button></div>}</div></div>
 
         {message && <div className={styles.message}>{message}</div>}
 
@@ -389,7 +388,6 @@ export default function EstudioMercadoPage() {
           </div>
         )}
 
-        {!loading && filteredProducts.length > 0 && <div className={styles.pagination}><span>Mostrando {visibleProducts.length} de {filteredProducts.length}</span><label>Filas<select value={pageSize} onChange={(event) => setPageSize(Number(event.target.value))}><option value={25}>25</option><option value={50}>50</option><option value={100}>100</option><option value={0}>Todas</option></select></label><button disabled={currentPage <= 1} onClick={() => setCurrentPage((page) => page - 1)}>Anterior</button><strong>Página {currentPage} de {totalPages}</strong><button disabled={currentPage >= totalPages} onClick={() => setCurrentPage((page) => page + 1)}>Siguiente</button></div>}
         {!loading && filteredProducts.length === 0 && <div className={styles.empty}>No hay productos que coincidan con la búsqueda.</div>}
         <p className={styles.help}>Las capturas se pueden pegar directamente con <strong>Ctrl + V</strong> dentro de la evidencia del competidor. Los porcentajes comparan el precio Dalse congelado en este período.</p>
       </main>
