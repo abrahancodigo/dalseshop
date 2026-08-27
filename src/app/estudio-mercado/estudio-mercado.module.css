@@ -85,5 +85,10 @@
 .historyItem { display: grid; gap: 6px; padding: 13px; border: 1px solid #e2e8f0; border-radius: 10px; color: #64748b; font-size: .8rem; }
 .historyItem strong { color: #4f46e5; }
 .historyItem div { display: flex; gap: 12px; flex-wrap: wrap; }
+.pagination { display: flex; align-items: center; justify-content: flex-end; gap: 12px; flex-wrap: wrap; margin-top: 12px; color: #334155; font-size: .78rem; font-weight: 700; }
+.pagination label { display: inline-flex; align-items: center; gap: 6px; }
+.pagination select { padding: 6px 8px; border: 1px solid #94a3b8; border-radius: 7px; background: #fff; font: inherit; }
+.pagination button { padding: 7px 10px; border: 1px solid #64748b; border-radius: 7px; background: #fff; color: #1e293b; cursor: pointer; font: inherit; font-size: .75rem; font-weight: 700; }
+.pagination button:disabled { opacity: .45; cursor: not-allowed; }
 @media (max-width: 900px) { .summaryGrid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 700px) { .main { padding: 28px 14px 45px; } .heading { align-items: flex-start; flex-direction: column; } .periodPicker { width: 100%; } .periodPicker input { width: 100%; } .heading p { line-height: 1.5; } .table { min-width: 1250px; } .help { line-height: 1.5; } .summaryGrid { grid-template-columns: 1fr 1fr; gap: 8px; } .summaryCard { padding: 12px; } .summaryCard strong { font-size: 1.25rem; } .reportBar { align-items: flex-start; } .reportBar label { width: 100%; justify-content: space-between; } .reportBar input { flex: 1; } }

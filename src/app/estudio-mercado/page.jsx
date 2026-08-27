@@ -12,9 +12,6 @@ import { useStore } from "@/context/StoreContext";
 import { getProducts, getMarketResearch, saveMarketResearch, deleteMarketResearch } from "@/lib/firestore";
 import { uploadImage, deleteFile } from "@/lib/storage";
 import { formatPrice } from "@/lib/format";
-import * as XLSX from "xlsx";
-import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
 import styles from "./estudio-mercado.module.css";
 
 const COMPETITORS = [
@@ -99,6 +96,8 @@ export default function EstudioMercadoPage() {
   const [comparePeriod, setComparePeriod] = useState("");
   const [comparisonDrafts, setComparisonDrafts] = useState({});
   const [detailTarget, setDetailTarget] = useState(null);
+  const [pageSize, setPageSize] = useState(25);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     if (!authLoading && (!user || !canView)) navigate("/auth/login", { replace: true });
@@ -145,6 +144,13 @@ export default function EstudioMercadoPage() {
       return matchesTerm && matchesCategory && matchesBrand && matchesStatus;
     });
   }, [products, search, filterCategory, filterBrand, filterStatus, drafts]);
+
+  const totalPages = pageSize === 0 ? 1 : Math.max(1, Math.ceil(filteredProducts.length / pageSize));
+  const visibleProducts = useMemo(() => (
+    pageSize === 0 ? filteredProducts : filteredProducts.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+  ), [filteredProducts, pageSize, currentPage]);
+
+  useEffect(() => { setCurrentPage(1); }, [search, filterCategory, filterBrand, filterStatus, pageSize, period]);
 
   const stats = useMemo(() => {
     const values = Object.values(drafts);
@@ -268,16 +274,18 @@ export default function EstudioMercadoPage() {
     return row;
   });
 
-  const exportExcel = () => {
+  const exportExcel = async () => {
     if (!reportRows.length) return;
+    const XLSX = await import("xlsx");
     const worksheet = XLSX.utils.json_to_sheet(reportRows);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, `Mercado ${period}`);
     XLSX.writeFile(workbook, `Estudio_Mercado_${period}.xlsx`);
   };
 
-  const exportPdf = () => {
+  const exportPdf = async () => {
     if (!reportRows.length) return;
+    const [{ jsPDF }, { default: autoTable }] = await Promise.all([import("jspdf"), import("jspdf-autotable")]);
     const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
     pdf.setFontSize(16);
     pdf.text(`Estudio de Mercado - ${period}`, 14, 14);
@@ -349,7 +357,7 @@ export default function EstudioMercadoPage() {
                 <th>Acciones</th>
               </tr></thead>
               <tbody>
-                {filteredProducts.map((product) => {
+                {visibleProducts.map((product) => {
                   const draft = drafts[product.id] || makeDraft(product);
                   return <tr key={product.id}>
                     <td className={styles.productCell}><div className={styles.productInfo}>
@@ -380,6 +388,7 @@ export default function EstudioMercadoPage() {
           </div>
         )}
 
+        {!loading && filteredProducts.length > 0 && <div className={styles.pagination}><span>Mostrando {visibleProducts.length} de {filteredProducts.length}</span><label>Filas<select value={pageSize} onChange={(event) => setPageSize(Number(event.target.value))}><option value={25}>25</option><option value={50}>50</option><option value={100}>100</option><option value={0}>Todas</option></select></label><button disabled={currentPage <= 1} onClick={() => setCurrentPage((page) => page - 1)}>Anterior</button><strong>Página {currentPage} de {totalPages}</strong><button disabled={currentPage >= totalPages} onClick={() => setCurrentPage((page) => page + 1)}>Siguiente</button></div>}
         {!loading && filteredProducts.length === 0 && <div className={styles.empty}>No hay productos que coincidan con la búsqueda.</div>}
         <p className={styles.help}>Las capturas se pueden pegar directamente con <strong>Ctrl + V</strong> dentro de la evidencia del competidor. Los porcentajes comparan el precio Dalse congelado en este período.</p>
       </main>
