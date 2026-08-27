@@ -50,7 +50,7 @@ service cloud.firestore {
       return role() in ['superadmin', 'admin']
         || (
           role() == 'escritor'
-          && permission in ['pages', 'products', 'categories', 'brands', 'blog', 'inventory']
+          && permission in ['pages', 'products', 'categories', 'brands', 'blog', 'inventory', 'marketResearch']
         );
     }
 
@@ -72,9 +72,10 @@ service cloud.firestore {
           && permission in [
             'dashboard', 'settings', 'theme', 'pages', 'navigation', 'products',
             'categories', 'brands', 'orders', 'customers', 'coupons', 'blog',
-            'newsletter', 'reviews', 'shipping', 'features', 'inventory', 'payroll'
+            'newsletter', 'reviews', 'shipping', 'features', 'inventory', 'payroll', 'marketResearch'
           ]
-        );
+        )
+        || (role() == 'lector' && permission == 'marketResearch');
     }
 
     function canView(permission) {
@@ -217,6 +218,12 @@ service cloud.firestore {
     match /loans/{document} {
       allow read: if canView('payroll');
       allow write: if canManage('payroll');
+    }
+
+    match /market_research/{document} {
+      allow read: if canView('marketResearch');
+      allow create, update: if canManage('marketResearch');
+      allow delete: if isSuperAdmin() || (canManage('marketResearch') && role() == 'admin');
     }
 
     match /rate_limits/{document} {

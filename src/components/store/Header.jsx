@@ -67,6 +67,11 @@ export function AuthButtons() {
               Control Asistencia
             </Link>
           )}
+          {hasPermission("marketResearch") && (
+            <Link to="/estudio-mercado" className={styles.dropdownItem} onClick={() => setAuthDropdown(false)}>
+              Estudio de Mercado
+            </Link>
+          )}
           <button 
             className={styles.dropdownItem} 
             onClick={async () => {

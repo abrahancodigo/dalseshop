@@ -1438,6 +1438,59 @@ export async function updateInventoryMovement(id, data) {
   }
 }
 
+// ----- Market research -----
+export async function getMarketResearch(options = {}) {
+  try {
+    const constraints = [];
+    if (options.periodKey) constraints.push(where("periodKey", "==", options.periodKey));
+    if (options.productId) constraints.push(where("productId", "==", options.productId));
+    const snapshot = await getDocs(query(collection(db, "market_research"), ...constraints));
+    return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (error) {
+    console.error("Error fetching market research:", error);
+    return [];
+  }
+}
+
+export async function saveMarketResearch(id, data) {
+  try {
+    const normalized = {
+      ...data,
+      periodKey: String(data.periodKey || "").slice(0, 7),
+      productId: String(data.productId || "").slice(0, 128),
+      productName: String(data.productName || "").slice(0, 200),
+      productSku: String(data.productSku || "").slice(0, 120),
+      dalsePrice: Math.max(0, Number(data.dalsePrice) || 0),
+      competitors: data.competitors && typeof data.competitors === "object" ? data.competitors : {},
+      notes: String(data.notes || "").slice(0, 2000),
+      updatedAt: serverTimestamp(),
+    };
+
+    if (id) {
+      await updateDoc(doc(db, "market_research", id), normalized);
+      return id;
+    }
+
+    const newRef = await addDoc(collection(db, "market_research"), {
+      ...normalized,
+      createdAt: serverTimestamp(),
+    });
+    return newRef.id;
+  } catch (error) {
+    console.error("Error saving market research:", error);
+    throw error;
+  }
+}
+
+export async function deleteMarketResearch(id) {
+  try {
+    await deleteDoc(doc(db, "market_research", id));
+  } catch (error) {
+    console.error("Error deleting market research:", error);
+    throw error;
+  }
+}
+
 export async function bulkSaveProducts(products) {
   const results = { created: 0, updated: 0, errors: 0 };
   const existingProducts = await getProducts();

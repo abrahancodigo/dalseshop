@@ -44,7 +44,7 @@ function cleanPermissions(value) {
   const allowedKeys = [
     "dashboard", "settings", "theme", "pages", "navigation", "products",
     "categories", "brands", "orders", "customers", "coupons", "blog",
-    "newsletter", "reviews", "shipping", "features", "users", "inventory", "payroll",
+    "newsletter", "reviews", "shipping", "features", "users", "inventory", "payroll", "marketResearch",
   ];
   const result = {};
   if (!value || typeof value !== "object" || Array.isArray(value)) return result;

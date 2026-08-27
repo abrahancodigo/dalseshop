@@ -4,14 +4,14 @@ export const ROLE_PERMISSIONS = {
     navigation: true, products: "manage", categories: true, brands: true,
     orders: "manage", customers: true, coupons: true,
     blog: true, newsletter: true, reviews: true, shipping: true,
-    features: true, users: true, inventory: "manage", payroll: "manage",
+    features: true, users: true, inventory: "manage", payroll: "manage", marketResearch: "manage",
   },
   admin: {
     dashboard: true, settings: true, theme: true, pages: "manage",
     navigation: true, products: "manage", categories: true, brands: true,
     orders: "manage", customers: true, coupons: true,
     blog: true, newsletter: true, reviews: true, shipping: true,
-    features: true, users: true, inventory: "manage", payroll: "manage",
+    features: true, users: true, inventory: "manage", payroll: "manage", marketResearch: "manage",
   },
   escritor: {
     dashboard: true, settings: "view", theme: "view", pages: "manage",
@@ -19,6 +19,7 @@ export const ROLE_PERMISSIONS = {
     orders: "view", customers: "view", coupons: "view",
     blog: true, newsletter: "view", reviews: "view", shipping: "view",
     features: "view", users: false, inventory: "manage", payroll: "view",
+    marketResearch: "manage",
   },
   lector: {
     dashboard: true, settings: "view", theme: "view", pages: "view",
@@ -26,6 +27,7 @@ export const ROLE_PERMISSIONS = {
     orders: "view", customers: "view", coupons: "view",
     blog: "view", newsletter: "view", reviews: "view", shipping: "view",
     features: "view", users: false, inventory: false, payroll: false,
+    marketResearch: "view",
   },
 };
 
@@ -49,6 +51,7 @@ export const ROUTE_PERMISSIONS = {
   "/admin/usuarios": "users",
   "/inventario": "inventory",
   "/control-asistencia": "payroll",
+  "/estudio-mercado": "marketResearch",
 };
 
 export function hasPermission(userPerms, permission) {
