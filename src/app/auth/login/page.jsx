@@ -228,9 +228,15 @@ export default function LoginPage() {
               <button
                 type="button"
                 className={styles.eyeBtn}
-                onClick={() => setShowPassword((v) => !v)}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  setShowPassword((value) => !value);
+                }}
                 tabIndex={-1}
                 aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                aria-pressed={showPassword}
               >
                 {showPassword ? <HiOutlineEyeSlash size={20} /> : <HiOutlineEye size={20} />}
               </button>
