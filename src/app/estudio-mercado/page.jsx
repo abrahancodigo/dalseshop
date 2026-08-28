@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { serverTimestamp } from "firebase/firestore";
 import { HiOutlineChartBar, HiOutlineClipboardDocumentList, HiOutlineClock, HiOutlinePhoto, HiOutlineArrowUpTray, HiOutlineTrash, HiOutlineMagnifyingGlass, HiOutlineFunnel, HiOutlineArrowDownTray, HiOutlineDocumentText, HiOutlineInformationCircle } from "react-icons/hi2";
@@ -74,6 +74,30 @@ const normalizeUrl = (value) => {
   }
 };
 
+function CurrencyInput({ value, onChange, disabled, placeholder, label }) {
+  return <label className={styles.currencyInput}>
+    <span>$</span>
+    <input
+      className={styles.priceInput}
+      type="text"
+      inputMode="decimal"
+      disabled={disabled}
+      value={value}
+      placeholder={placeholder}
+      aria-label={label}
+      onChange={(event) => onChange(event.target.value.replace(",", "."))}
+    />
+  </label>;
+}
+
+function MarketTableHeader() {
+  return <thead><tr>
+    <th className={styles.productCol}>Producto</th><th>Precio Dalse</th>
+    {COMPETITORS.map((competitor) => <th key={competitor.key}>{competitor.label}</th>)}
+    <th>Acciones</th>
+  </tr></thead>;
+}
+
 export default function EstudioMercadoPage() {
   const { user, hasPermission, canManage, role, loading: authLoading } = useAuth();
   const { openImage } = useImage();
@@ -98,6 +122,8 @@ export default function EstudioMercadoPage() {
   const [detailTarget, setDetailTarget] = useState(null);
   const [pageSize, setPageSize] = useState(25);
   const [currentPage, setCurrentPage] = useState(1);
+  const tableWrapRef = useRef(null);
+  const [stickyTableHeader, setStickyTableHeader] = useState(null);
 
   useEffect(() => {
     if (!authLoading && (!user || !canView)) navigate("/auth/login", { replace: true });
@@ -151,6 +177,36 @@ export default function EstudioMercadoPage() {
   ), [filteredProducts, pageSize, currentPage]);
 
   useEffect(() => { setCurrentPage(1); }, [search, filterCategory, filterBrand, filterStatus, pageSize, period]);
+
+  useEffect(() => {
+    const wrapper = tableWrapRef.current;
+    if (!wrapper) return;
+    const updateStickyHeader = () => {
+      const table = wrapper.querySelector("table");
+      const header = table?.querySelector("thead");
+      if (!table || !header) return;
+      const wrapperRect = wrapper.getBoundingClientRect();
+      const headerHeight = header.getBoundingClientRect().height;
+      const visible = wrapperRect.top <= 0 && wrapperRect.bottom > headerHeight;
+      setStickyTableHeader({
+        visible,
+        left: Math.max(0, wrapperRect.left),
+        width: Math.min(wrapperRect.width, window.innerWidth),
+        tableWidth: table.offsetWidth,
+        scrollLeft: wrapper.scrollLeft,
+        columns: [...header.querySelectorAll("th")].map((cell) => cell.getBoundingClientRect().width),
+      });
+    };
+    updateStickyHeader();
+    window.addEventListener("scroll", updateStickyHeader, { passive: true });
+    window.addEventListener("resize", updateStickyHeader);
+    wrapper.addEventListener("scroll", updateStickyHeader, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", updateStickyHeader);
+      window.removeEventListener("resize", updateStickyHeader);
+      wrapper.removeEventListener("scroll", updateStickyHeader);
+    };
+  }, [loading, visibleProducts.length]);
 
   const stats = useMemo(() => {
     const values = Object.values(drafts);
@@ -349,29 +405,25 @@ export default function EstudioMercadoPage() {
         {message && <div className={styles.message}>{message}</div>}
 
         {loading ? <div className={styles.loading}><div className="spinner" /> Cargando productos...</div> : (
-          <div className={styles.tableWrap}>
+          <div className={styles.tableWrap} ref={tableWrapRef}>
             <table className={styles.table}>
-              <thead><tr>
-                <th className={styles.productCol}>Producto</th><th>Precio Dalse</th>
-                {COMPETITORS.map((competitor) => <th key={competitor.key}>{competitor.label}</th>)}
-                <th>Acciones</th>
-              </tr></thead>
+              <MarketTableHeader />
               <tbody>
                 {visibleProducts.map((product) => {
                   const draft = drafts[product.id] || makeDraft(product);
                   return <tr key={product.id}>
                     <td className={styles.productCell}><div className={styles.productInfo}>
-                      {product.images?.[0] ? <img src={product.images[0]} alt="" /> : <div className={styles.imagePlaceholder}><HiOutlinePhoto /></div>}
+                       {product.images?.[0] ? <button type="button" className={styles.productImageButton} onClick={() => openImage(product.images[0])} title="Ver imagen grande"><img src={product.images[0]} alt={`Imagen de ${product.name}`} /></button> : <div className={styles.imagePlaceholder}><HiOutlinePhoto /></div>}
                       <div><strong>{product.name}</strong><small>Código de barras: {product.barcode || "Sin código de barras"}</small>{product.sku && <small>SKU: {product.sku}</small>}</div>
                     </div></td>
-                    <td><input className={styles.priceInput} type="number" min="0" step="0.01" disabled={!canEdit} value={draft.dalsePrice} onChange={(event) => updateDraft(product.id, { dalsePrice: event.target.value })} /></td>
+                    <td><CurrencyInput value={draft.dalsePrice} disabled={!canEdit} label={`Precio Dalse de ${product.name}`} onChange={(value) => updateDraft(product.id, { dalsePrice: value })} /></td>
                     {COMPETITORS.map(({ key }) => {
                       const competitor = draft.competitors[key] || {};
                       const difference = getDifference(draft.dalsePrice, competitor.price);
                       const uploadKey = `${product.id}-${key}`;
                       return <td key={key}>
                         <div className={styles.competitorCell}>
-                          <input className={styles.priceInput} type="number" min="0" step="0.01" disabled={!canEdit} value={competitor.price} placeholder="$" onChange={(event) => updateCompetitor(product.id, key, { price: event.target.value })} />
+                          <CurrencyInput value={competitor.price} disabled={!canEdit} placeholder="0.00" label={`Precio de ${key} para ${product.name}`} onChange={(value) => updateCompetitor(product.id, key, { price: value })} />
                           {difference !== null && <span className={`${styles.difference} ${difference > 0 ? styles.expensive : styles.cheaper}`}>{difference > 0 ? "+" : ""}{difference.toFixed(1)}% {difference > 0 ? "arriba" : difference < 0 ? "abajo" : "igual"}</span>}
                           <div className={styles.evidence} tabIndex={canEdit ? 0 : -1} onPaste={(event) => handlePaste(event, product, key)} title={canEdit ? "Pega una captura con Ctrl + V" : "Sin permiso de edición"}>
                             {competitor.screenshotUrl ? <button type="button" className={styles.evidencePreview} onClick={() => openImage(competitor.screenshotUrl)} title="Ver captura completa"><img src={competitor.screenshotUrl} alt={`Evidencia ${key}`} /></button> : <><HiOutlinePhoto /><span>{canEdit ? "Pegar captura" : "Sin evidencia"}</span></>}
@@ -387,6 +439,8 @@ export default function EstudioMercadoPage() {
             </table>
           </div>
         )}
+
+        {stickyTableHeader?.visible && <div className={styles.stickyTableHeader} style={{ left: stickyTableHeader.left, width: stickyTableHeader.width }}><table className={styles.table} style={{ width: stickyTableHeader.tableWidth, minWidth: stickyTableHeader.tableWidth, marginLeft: -stickyTableHeader.scrollLeft }}><colgroup>{stickyTableHeader.columns.map((width, index) => <col key={index} style={{ width }} />)}</colgroup><MarketTableHeader /></table></div>}
 
          {!loading && filteredProducts.length > 0 && <div className={styles.pagination}><span>Mostrando {visibleProducts.length} de {filteredProducts.length}</span><label>Filas<select value={pageSize} onChange={(event) => setPageSize(Number(event.target.value))}><option value={25}>25</option><option value={50}>50</option><option value={100}>100</option><option value={0}>Todas</option></select></label><button disabled={currentPage <= 1} onClick={() => setCurrentPage((page) => page - 1)}>Anterior</button><strong>Página {currentPage} de {totalPages}</strong><button disabled={currentPage >= totalPages} onClick={() => setCurrentPage((page) => page + 1)}>Siguiente</button></div>}
          {!loading && filteredProducts.length === 0 && <div className={styles.empty}>No hay productos que coincidan con la búsqueda.</div>}

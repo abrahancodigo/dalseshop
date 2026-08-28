@@ -17,7 +17,7 @@ import { useStore } from "@/context/StoreContext";
 import { getLocalDateString, parseLocalDate } from "@/lib/dates";
 import StoreHeader from "@/components/store/Header";
 import StoreFooter from "@/components/store/Footer";
-import { formatPrice } from "@/lib/format";
+import { formatPrice as formatNumber } from "@/lib/format";
 import * as XLSX from "xlsx";
 import {
   HiOutlineUserGroup, HiOutlineClipboardDocumentCheck, HiOutlineBanknotes,
@@ -28,6 +28,8 @@ import {
   HiOutlineArrowsRightLeft, HiOutlineDocumentArrowDown
 } from "react-icons/hi2";
 import styles from "./planilla.module.css";
+
+const formatPrice = (value) => `$${formatNumber(value)}`;
 
 const TABS = [
   { key: "empleados", label: "Empleados", icon: HiOutlineUserGroup },

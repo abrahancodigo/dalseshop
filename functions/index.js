@@ -18,6 +18,10 @@ const smtpUser = defineSecret("SMTP_USER");
 const smtpPass = defineSecret("SMTP_PASS");
 const smtpFrom = defineSecret("SMTP_FROM");
 
+function formatCurrency(value) {
+  return `$${Number(value || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
 function escapeHtml(value) {
   return String(value || "")
     .replace(/&/g, "&amp;")
@@ -568,7 +572,7 @@ exports.sendOrderEmail = onCall(
         <p>Hola <strong>${escapeHtml(order.customer?.name || "Cliente")}</strong>,</p>
         <p>Hemos recibido tu pedido correctamente.</p>
         <p><strong>Número:</strong> #${escapeHtml(displayOrderNumber)}</p>
-        ${showPrices ? `<p><strong>Total:</strong> $${Number(order.total || 0).toFixed(2)}</p>` : ""}
+        ${showPrices ? `<p><strong>Total:</strong> ${formatCurrency(order.total)}</p>` : ""}
       </div>`,
       attachments,
     });
