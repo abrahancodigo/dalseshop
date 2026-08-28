@@ -1454,6 +1454,12 @@ export async function getMarketResearch(options = {}) {
 
 export async function saveMarketResearch(id, data) {
   try {
+    const dalsePriceKeys = ["standard", "siman", "calleja", "mayoreo"];
+    const dalsePrices = data.dalsePrices && typeof data.dalsePrices === "object"
+      ? Object.fromEntries(Object.entries(data.dalsePrices)
+        .filter(([key]) => dalsePriceKeys.includes(key))
+        .map(([key, value]) => [key, Math.max(0, Number(value) || 0)]))
+      : {};
     const normalized = {
       ...data,
       periodKey: String(data.periodKey || "").slice(0, 7),
@@ -1461,6 +1467,7 @@ export async function saveMarketResearch(id, data) {
       productName: String(data.productName || "").slice(0, 200),
       productSku: String(data.productSku || "").slice(0, 120),
       dalsePrice: Math.max(0, Number(data.dalsePrice) || 0),
+      dalsePrices,
       competitors: data.competitors && typeof data.competitors === "object" ? data.competitors : {},
       notes: String(data.notes || "").slice(0, 2000),
       updatedAt: serverTimestamp(),

@@ -12,6 +12,7 @@
 .search input { width: 100%; border: 0; outline: 0; padding: 11px 0; }
 .counter, .readOnly { display: inline-flex; align-items: center; gap: 6px; color: #1e293b; font-size: .86rem; font-weight: 700; }
 .filter { padding: 10px; border: 1px solid #94a3b8; border-radius: 9px; background: #fff; color: #0f172a; font: inherit; font-size: .84rem; font-weight: 700; }
+.filterLabel { display: grid; gap: 4px; color: #334155; font-size: .72rem; font-weight: 800; }
 .readOnly { padding: 7px 10px; border-radius: 99px; background: #eef2ff; color: #4f46e5; font-weight: 700; }
 .message { margin: 12px 0; padding: 11px 14px; border-radius: 9px; background: #ecfdf5; color: #047857; font-size: .86rem; }
 .tableWrap { overflow-x: auto; overflow-y: visible; border: 2px solid #64748b; border-radius: 14px; background: #fff; box-shadow: 0 10px 30px rgba(15, 23, 42, .12); }
@@ -94,6 +95,7 @@
 .modalClose { position: absolute; top: 10px; right: 14px; border: 0; background: none; color: #64748b; font-size: 1.8rem; cursor: pointer; }
 .historyList { display: grid; gap: 10px; }
 .historyItem { display: grid; gap: 6px; padding: 13px; border: 1px solid #e2e8f0; border-radius: 10px; color: #64748b; font-size: .8rem; }
+.historyPrices { display: grid; gap: 3px; color: #334155; font-size: .84rem; }
 .historyItem strong { color: #4f46e5; }
 .historyItem div { display: flex; gap: 12px; flex-wrap: wrap; }
 .pagination { display: flex; align-items: center; justify-content: flex-end; gap: 12px; flex-wrap: wrap; margin-top: 12px; color: #1e293b; font-size: .84rem; font-weight: 700; }
