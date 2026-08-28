@@ -1,4 +1,4 @@
-import { Component, useEffect } from 'react'
+import { Component, Suspense, useEffect } from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter, useLocation } from 'react-router-dom'
 import AppRouter from '@/router'
@@ -44,7 +44,9 @@ root.render(
     <BrowserRouter>
       <ScrollToTop />
       <Providers>
-        <AppRouter />
+        <Suspense fallback={<div className="loading-screen"><div className="spinner" /></div>}>
+          <AppRouter />
+        </Suspense>
       </Providers>
     </BrowserRouter>
   </ErrorBoundary>

@@ -530,11 +530,25 @@
   padding-right: 2.5rem;
 }
 
+/* Prevent browser password-manager controls from covering the custom toggle. */
+.inputPassword::-ms-reveal,
+.inputPassword::-ms-clear {
+  display: none;
+}
+
+.inputPassword::-webkit-credentials-auto-fill-button {
+  visibility: hidden;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+}
+
 .eyeBtn {
   flex-shrink: 0;
   position: absolute;
   right: 0;
   top: 50%;
+  z-index: 2;
   transform: translateY(-50%);
   display: flex;
   align-items: center;

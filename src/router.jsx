@@ -1,48 +1,50 @@
+import { lazy } from 'react'
 import { Routes, Route } from 'react-router-dom'
-import AdminLayout from '@/app/admin/layout'
 
-import HomePage from '@/app/page'
-import DynamicPage from '@/app/[slug]/page'
-import ProductosPage from '@/app/productos/page'
-import ProductDetailPage from '@/app/productos/[slug]/page'
-import BlogPage from '@/app/blog/page'
-import BlogPostPage from '@/app/blog/[slug]/page'
-import CheckoutPage from '@/app/checkout/page'
-import ContactoPage from '@/app/contacto/page'
-import TerminosPage from '@/app/terminos-y-condiciones/page'
-import PrivacidadPage from '@/app/politica-de-privacidad/page'
-import EnviosPage from '@/app/politica-de-envios-y-devoluciones/page'
-import SobreNosotrosPage from '@/app/sobre-nosotros/page'
+const AdminLayout = lazy(() => import('@/app/admin/layout'))
 
-import FacturacionPage from '@/app/facturacion/page'
-import DetalleFacturaPage from '@/app/facturacion/detalle/page'
-import InventarioPage from '@/app/inventario/page'
-import ControlAsistenciaPage from '@/app/control-asistencia/page'
-import EstudioMercadoPage from '@/app/estudio-mercado/page'
-import PreviewPage from '@/app/preview/[id]/page'
-import LoginPage from '@/app/auth/login/page'
+const HomePage = lazy(() => import('@/app/page'))
+const DynamicPage = lazy(() => import('@/app/[slug]/page'))
+const ProductosPage = lazy(() => import('@/app/productos/page'))
+const ProductDetailPage = lazy(() => import('@/app/productos/[slug]/page'))
+const BlogPage = lazy(() => import('@/app/blog/page'))
+const BlogPostPage = lazy(() => import('@/app/blog/[slug]/page'))
+const CheckoutPage = lazy(() => import('@/app/checkout/page'))
+const ContactoPage = lazy(() => import('@/app/contacto/page'))
+const TerminosPage = lazy(() => import('@/app/terminos-y-condiciones/page'))
+const PrivacidadPage = lazy(() => import('@/app/politica-de-privacidad/page'))
+const EnviosPage = lazy(() => import('@/app/politica-de-envios-y-devoluciones/page'))
+const SobreNosotrosPage = lazy(() => import('@/app/sobre-nosotros/page'))
 
-import AdminDashboard from '@/app/admin/page'
-import AdminConfig from '@/app/admin/configuracion/page'
-import AdminTema from '@/app/admin/tema/page'
-import AdminNavegacion from '@/app/admin/navegacion/page'
-import AdminFuncionalidades from '@/app/admin/funcionalidades/page'
-import AdminProductos from '@/app/admin/productos/page'
-import AdminProductEditor from '@/app/admin/productos/[id]/page'
-import AdminCategorias from '@/app/admin/categorias/page'
-import AdminMarcas from '@/app/admin/marcas/page'
-import AdminPedidos from '@/app/admin/pedidos/page'
-import AdminClientes from '@/app/admin/clientes/page'
-import AdminCupones from '@/app/admin/cupones/page'
-import AdminEnvios from '@/app/admin/envios/page'
-import AdminPaginas from '@/app/admin/paginas/page'
-import AdminPageEditor from '@/app/admin/paginas/[id]/page'
-import AdminBlogPosts from '@/app/admin/blog/posts/page'
-import AdminBlogPostEditor from '@/app/admin/blog/posts/[id]/page'
-import AdminBlogConfig from '@/app/admin/blog/configuracion/page'
-import AdminNewsletter from '@/app/admin/marketing/newsletter/page'
-import AdminResenas from '@/app/admin/marketing/resenas/page'
-import AdminUsuarios from '@/app/admin/usuarios/page'
+const FacturacionPage = lazy(() => import('@/app/facturacion/page'))
+const DetalleFacturaPage = lazy(() => import('@/app/facturacion/detalle/page'))
+const InventarioPage = lazy(() => import('@/app/inventario/page'))
+const ControlAsistenciaPage = lazy(() => import('@/app/control-asistencia/page'))
+const EstudioMercadoPage = lazy(() => import('@/app/estudio-mercado/page'))
+const PreviewPage = lazy(() => import('@/app/preview/[id]/page'))
+const LoginPage = lazy(() => import('@/app/auth/login/page'))
+
+const AdminDashboard = lazy(() => import('@/app/admin/page'))
+const AdminConfig = lazy(() => import('@/app/admin/configuracion/page'))
+const AdminTema = lazy(() => import('@/app/admin/tema/page'))
+const AdminNavegacion = lazy(() => import('@/app/admin/navegacion/page'))
+const AdminFuncionalidades = lazy(() => import('@/app/admin/funcionalidades/page'))
+const AdminProductos = lazy(() => import('@/app/admin/productos/page'))
+const AdminProductEditor = lazy(() => import('@/app/admin/productos/[id]/page'))
+const AdminCategorias = lazy(() => import('@/app/admin/categorias/page'))
+const AdminMarcas = lazy(() => import('@/app/admin/marcas/page'))
+const AdminPedidos = lazy(() => import('@/app/admin/pedidos/page'))
+const AdminClientes = lazy(() => import('@/app/admin/clientes/page'))
+const AdminCupones = lazy(() => import('@/app/admin/cupones/page'))
+const AdminEnvios = lazy(() => import('@/app/admin/envios/page'))
+const AdminPaginas = lazy(() => import('@/app/admin/paginas/page'))
+const AdminPageEditor = lazy(() => import('@/app/admin/paginas/[id]/page'))
+const AdminBlogPosts = lazy(() => import('@/app/admin/blog/posts/page'))
+const AdminBlogPostEditor = lazy(() => import('@/app/admin/blog/posts/[id]/page'))
+const AdminBlogConfig = lazy(() => import('@/app/admin/blog/configuracion/page'))
+const AdminNewsletter = lazy(() => import('@/app/admin/marketing/newsletter/page'))
+const AdminResenas = lazy(() => import('@/app/admin/marketing/resenas/page'))
+const AdminUsuarios = lazy(() => import('@/app/admin/usuarios/page'))
 
 export default function AppRouter() {
   return (
