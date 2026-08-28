@@ -161,7 +161,13 @@ export default function UsuariosPage() {
       setShowModal(false);
       loadUsers();
     } catch (err) {
-      setError(err?.details || err?.message || "Error al guardar el usuario");
+      const messages = {
+        "functions/already-exists": "Ese nombre de usuario ya está en uso.",
+        "functions/not-found": "La cuenta de autenticación no existe.",
+        "functions/permission-denied": "No tienes permiso para gestionar usuarios.",
+        "functions/internal": "No se pudo guardar el usuario. Intenta nuevamente.",
+      };
+      setError(messages[err?.code] || err?.details || err?.message || "Error al guardar el usuario");
       console.error(err);
     } finally {
       setSaving(false);

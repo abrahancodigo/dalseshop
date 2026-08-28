@@ -202,8 +202,9 @@ exports.ensureUserProfile = onCall(async (request) => {
 });
 
 exports.saveManagedUser = onCall(async (request) => {
-  const { auth } = await requireManage(request, "users");
-  const data = request.data || {};
+  try {
+    const { auth } = await requireManage(request, "users");
+    const data = request.data || {};
   const username = normalizeUsername(data.username);
   const isUsernameAccount = Boolean(username);
   if (isUsernameAccount && !isValidUsername(username)) {
@@ -292,7 +293,24 @@ exports.saveManagedUser = onCall(async (request) => {
   if (!targetSnapshot.exists) profile.createdAt = legacyProfile.createdAt || FieldValue.serverTimestamp();
   await targetRef.set(profile, { merge: true });
   if (legacySnapshot?.exists && legacyId !== authUser.uid) await legacySnapshot.ref.delete();
-  return { id: authUser.uid };
+    return { id: authUser.uid };
+  } catch (error) {
+    if (error instanceof HttpsError) throw error;
+    logger.error("Managed user save failed", {
+      event: "managed_user.save_failed",
+      actorUid: request.auth?.uid || null,
+      targetUid: cleanText(request.data?.legacyId, 128) || null,
+      errorCode: error?.code || "unknown",
+      errorMessage: error?.message || "Unknown error",
+    });
+    if (error?.code === "auth/email-already-exists") {
+      throw new HttpsError("already-exists", "Ese nombre de usuario ya está en uso.");
+    }
+    if (error?.code === "auth/user-not-found") {
+      throw new HttpsError("not-found", "La cuenta de autenticación no existe.");
+    }
+    throw new HttpsError("internal", "No se pudo guardar el usuario. Intenta nuevamente.");
+  }
 });
 
 exports.resetManagedUserPassword = onCall(async (request) => {
