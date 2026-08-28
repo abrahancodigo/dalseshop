@@ -5,22 +5,24 @@ import { useStore } from "@/context/StoreContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { FcGoogle } from "react-icons/fc";
-import { HiEnvelope, HiLockClosed, HiOutlineEye, HiOutlineEyeSlash } from "react-icons/hi2";
+import { HiUser, HiLockClosed, HiOutlineEye, HiOutlineEyeSlash } from "react-icons/hi2";
+import { isValidUsername } from "@/lib/authUsername";
 import styles from "./login.module.css";
 
 export default function LoginPage() {
-  const { user, isAdmin, loginWithGoogle, registerWithEmail, loginWithEmail, resetPassword, loading, redirecting, authError } = useAuth();
+  const { user, isAdmin, loginWithGoogle, registerWithUsername, loginWithEmail, resetPassword, loading, redirecting, authError } = useAuth();
   const { settings } = useStore();
   const navigate = useNavigate();
   const location = useLocation();
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [mode, setMode] = useState("login");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [resetSent, setResetSent] = useState(false);
+  const [legacyAccess, setLegacyAccess] = useState(false);
 
   useEffect(() => {
     if (!loading && !redirecting && user) {
@@ -38,6 +40,7 @@ export default function LoginPage() {
 
   const resetForm = () => {
     setError("");
+    setUsername("");
     setEmail("");
     setPassword("");
     setDisplayName("");
@@ -45,14 +48,19 @@ export default function LoginPage() {
 
   const switchMode = (newMode) => {
     setMode(newMode);
+    if (newMode === "register") setLegacyAccess(false);
     setError("");
   };
 
-  const handleEmailSubmit = async (e) => {
+  const handleUsernameSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    if (!email || !password) {
+    if ((legacyAccess ? !email : !username) || !password) {
       setError("Completa todos los campos");
+      return;
+    }
+    if (!legacyAccess && !isValidUsername(username)) {
+      setError("El usuario debe tener 3 a 30 caracteres: letras, números, punto, guion o guion bajo");
       return;
     }
     if (mode === "register" && password.length < 6) {
@@ -62,16 +70,16 @@ export default function LoginPage() {
     setSubmitting(true);
     try {
       if (mode === "register") {
-        await registerWithEmail(email, password, displayName);
+        await registerWithUsername(username, password, displayName);
       } else {
-        await loginWithEmail(email, password);
+        await loginWithEmail(legacyAccess ? email.trim().toLowerCase() : `${username.trim().toLowerCase()}@auth.dalseshop.internal`, password);
       }
     } catch (err) {
       const map = {
-        "auth/email-already-in-use": "Este correo ya está registrado",
-        "auth/invalid-email": "Correo inválido",
-        "auth/user-not-found": "Correo o contraseña incorrectos",
-        "auth/wrong-password": "Correo o contraseña incorrectos",
+        "auth/email-already-in-use": "Este nombre de usuario ya está registrado",
+        "auth/invalid-email": legacyAccess ? "Correo inválido" : "Nombre de usuario inválido",
+        "auth/user-not-found": legacyAccess ? "Correo o contraseña incorrectos" : "Usuario o contraseña incorrectos",
+        "auth/wrong-password": legacyAccess ? "Correo o contraseña incorrectos" : "Usuario o contraseña incorrectos",
         "auth/invalid-credential": "Correo o contraseña incorrectos",
         "auth/weak-password": "La contraseña debe tener al menos 6 caracteres",
         "auth/too-many-requests": "Demasiados intentos. Intenta más tarde",
@@ -83,21 +91,17 @@ export default function LoginPage() {
 
   const handleResetPassword = async () => {
     setError("");
-    if (!email) {
-      setError("Ingresa tu correo electrónico primero");
+    if (!email.trim()) {
+      setError("Ingresa el correo de tu cuenta existente");
       return;
     }
     setSubmitting(true);
     try {
-      await resetPassword(email);
-      setResetSent(true);
-      setSubmitting(false);
+      await resetPassword(email.trim().toLowerCase());
+      setError("Te enviamos un correo para restablecer tu contraseña");
     } catch (err) {
-      const map = {
-        "auth/user-not-found": "No hay cuenta con este correo",
-        "auth/invalid-email": "Correo inválido",
-      };
-      setError(map[err.code] || "Error al enviar el correo de recuperación");
+      setError(err.code === "auth/user-not-found" ? "No hay una cuenta con ese correo" : "No se pudo enviar el correo de recuperación");
+    } finally {
       setSubmitting(false);
     }
   };
@@ -183,24 +187,10 @@ export default function LoginPage() {
           </div>
         )}
 
-        {resetSent ? (
-          <div className={styles.resetSent}>
-            <div className={styles.resetSentIcon}>✓</div>
-            <p className={styles.resetSentText}>
-              Te enviamos un correo a <strong>{email}</strong> para restablecer tu contraseña.
-            </p>
-            <button
-              className={styles.resetSentBack}
-              onClick={() => { setResetSent(false); setError(""); setSubmitting(false); }}
-            >
-              Volver a iniciar sesión
-            </button>
-          </div>
-        ) : (
-          <form onSubmit={handleEmailSubmit} className={styles.form}>
+        <form onSubmit={handleUsernameSubmit} className={styles.form}>
             {mode === "register" && (
               <div className={styles.field}>
-                <HiEnvelope className={styles.fieldIcon} />
+                <HiUser className={styles.fieldIcon} />
                 <input
                   className={styles.input}
                   type="text"
@@ -212,15 +202,15 @@ export default function LoginPage() {
               </div>
             )}
             <div className={styles.field}>
-              <HiEnvelope className={styles.fieldIcon} />
+              <HiUser className={styles.fieldIcon} />
               <input
                 className={styles.input}
-                type="email"
-                placeholder="Correo electrónico"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type={legacyAccess ? "email" : "text"}
+                placeholder={legacyAccess ? "Correo de cuenta existente" : "Nombre de usuario"}
+                value={legacyAccess ? email : username}
+                onChange={(e) => legacyAccess ? setEmail(e.target.value) : setUsername(e.target.value)}
                 required
-                autoComplete={mode === "login" ? "email" : "username"}
+                autoComplete={legacyAccess ? "email" : "username"}
               />
             </div>
             <div className={styles.field}>
@@ -245,16 +235,7 @@ export default function LoginPage() {
                 {showPassword ? <HiOutlineEyeSlash size={20} /> : <HiOutlineEye size={20} />}
               </button>
             </div>
-            {mode === "login" && (
-              <button
-                type="button"
-                className={styles.forgotLink}
-                onClick={handleResetPassword}
-                disabled={submitting}
-              >
-                ¿Olvidaste tu contraseña?
-              </button>
-            )}
+            {mode === "login" && (legacyAccess ? <button type="button" className={styles.forgotLink} onClick={handleResetPassword} disabled={submitting}>¿Olvidaste tu contraseña?</button> : <p className={styles.forgotLink}>Si olvidaste tu contraseña, solicita un restablecimiento al administrador.</p>)}
             <button
               type="submit"
               disabled={submitting}
@@ -266,8 +247,11 @@ export default function LoginPage() {
                 mode === "login" ? "Iniciar Sesión" : "Crear Cuenta"
               )}
             </button>
-          </form>
-        )}
+        </form>
+
+        {mode === "login" && <button type="button" className={styles.forgotLink} onClick={() => { setLegacyAccess((value) => !value); setError(""); }}>
+          {legacyAccess ? "Usar nombre de usuario" : "Acceder con correo de una cuenta existente"}
+        </button>}
 
         <div className={styles.divider}>
           <span className={styles.dividerLine} />

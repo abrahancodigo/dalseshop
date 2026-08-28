@@ -181,7 +181,7 @@ service cloud.firestore {
         && request.auth.uid == document
         && request.resource.data.email == request.auth.token.email
         && request.resource.data.keys().hasOnly([
-          'email', 'displayName', 'photoURL', 'role', 'isActive',
+          'email', 'username', 'displayName', 'photoURL', 'role', 'isActive',
           'createdAt', 'updatedAt'
         ])
         && request.resource.data.role == 'lector';

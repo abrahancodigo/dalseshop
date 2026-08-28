@@ -13,6 +13,7 @@ const db = getFirestore();
 const authAdmin = getAuth();
 const SUPER_ADMIN_EMAIL = "abrahanramos@gmail.com";
 const VALID_ROLES = ["superadmin", "admin", "escritor", "lector"];
+const USERNAME_AUTH_DOMAIN = "auth.dalseshop.internal";
 
 const smtpUser = defineSecret("SMTP_USER");
 const smtpPass = defineSecret("SMTP_PASS");
@@ -38,6 +39,18 @@ function cleanText(value, maxLength = 500) {
 function cleanEmail(value) {
   const email = cleanText(value, 254).toLowerCase();
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : "";
+}
+
+function normalizeUsername(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function isValidUsername(value) {
+  return /^[a-z0-9](?:[a-z0-9._-]{2,29})$/.test(normalizeUsername(value));
+}
+
+function usernameAuthEmail(username) {
+  return `${normalizeUsername(username)}@${USERNAME_AUTH_DOMAIN}`;
 }
 
 function uniqueEmails(values) {
@@ -158,6 +171,9 @@ exports.ensureUserProfile = onCall(async (request) => {
   if (uidSnapshot.exists) return { id: auth.uid, ...uidSnapshot.data() };
 
   const email = cleanEmail(auth.token?.email);
+  const username = email.endsWith(`@${USERNAME_AUTH_DOMAIN}`)
+    ? email.slice(0, -(`@${USERNAME_AUTH_DOMAIN}`).length)
+    : "";
   const legacySnapshot = email
     ? await db.collection("users").where("email", "==", email).limit(1).get()
     : null;
@@ -168,6 +184,7 @@ exports.ensureUserProfile = onCall(async (request) => {
     : (VALID_ROLES.includes(legacyData.role) ? legacyData.role : "lector");
   const profile = {
     email,
+    ...(username ? { username } : {}),
     displayName: cleanText(legacyData.displayName || auth.token?.name || email.split("@")[0], 120),
     photoURL: cleanText(legacyData.photoURL || auth.token?.picture, 2000),
     role,
@@ -187,12 +204,17 @@ exports.ensureUserProfile = onCall(async (request) => {
 exports.saveManagedUser = onCall(async (request) => {
   const { auth } = await requireManage(request, "users");
   const data = request.data || {};
-  const email = cleanEmail(data.email);
-  const displayName = cleanText(data.displayName || email, 120);
+  const username = normalizeUsername(data.username);
+  const isUsernameAccount = Boolean(username);
+  if (isUsernameAccount && !isValidUsername(username)) {
+    throw new HttpsError("invalid-argument", "El nombre de usuario no es válido.");
+  }
+  const email = isUsernameAccount ? usernameAuthEmail(username) : cleanEmail(data.email);
+  const displayName = cleanText(data.displayName || username || email, 120);
   const legacyId = cleanText(data.legacyId, 128);
   const callerIsSuperAdmin = cleanEmail(auth.token?.email) === SUPER_ADMIN_EMAIL;
   let requestedRole = VALID_ROLES.includes(data.role) ? data.role : "lector";
-  if (!email) throw new HttpsError("invalid-argument", "El correo no es válido.");
+  if (!email) throw new HttpsError("invalid-argument", "El usuario o correo no es válido.");
   if (email === SUPER_ADMIN_EMAIL) requestedRole = "superadmin";
   if (requestedRole === "superadmin" && !callerIsSuperAdmin) {
     throw new HttpsError("permission-denied", "Solo el superadmin puede asignar ese rol.");
@@ -224,6 +246,10 @@ exports.saveManagedUser = onCall(async (request) => {
     }
   }
 
+  if (!authUser && isUsernameAccount && !data.password) {
+    throw new HttpsError("invalid-argument", "La contraseña es obligatoria al crear un usuario.");
+  }
+
   const targetWasSuperAdmin = legacyProfile.role === "superadmin"
     || cleanEmail(legacyProfile.email) === SUPER_ADMIN_EMAIL
     || authUser?.customClaims?.role === "superadmin"
@@ -233,13 +259,21 @@ exports.saveManagedUser = onCall(async (request) => {
   }
 
   if (authUser) {
-    authUser = await authAdmin.updateUser(authUser.uid, {
+    const updateData = {
       email,
       displayName,
       disabled: data.isActive === false,
-    });
+    };
+    if (data.password) updateData.password = String(data.password).slice(0, 128);
+    authUser = await authAdmin.updateUser(authUser.uid, updateData);
   } else {
-    authUser = await authAdmin.createUser({ email, displayName, disabled: data.isActive === false });
+    const createData = {
+      email,
+      displayName,
+      disabled: data.isActive === false,
+    };
+    if (data.password) createData.password = String(data.password).slice(0, 128);
+    authUser = await authAdmin.createUser(createData);
   }
 
   await authAdmin.setCustomUserClaims(authUser.uid, { role: requestedRole });
@@ -247,6 +281,7 @@ exports.saveManagedUser = onCall(async (request) => {
   const targetSnapshot = await targetRef.get();
   const profile = {
     email,
+    ...(isUsernameAccount ? { username } : {}),
     displayName,
     photoURL: cleanText(data.photoURL || legacyProfile.photoURL || authUser.photoURL, 2000),
     role: requestedRole,
@@ -258,6 +293,17 @@ exports.saveManagedUser = onCall(async (request) => {
   await targetRef.set(profile, { merge: true });
   if (legacySnapshot?.exists && legacyId !== authUser.uid) await legacySnapshot.ref.delete();
   return { id: authUser.uid };
+});
+
+exports.resetManagedUserPassword = onCall(async (request) => {
+  await requireManage(request, "users");
+  const uid = cleanText(request.data?.uid, 128);
+  const password = String(request.data?.password || "");
+  if (!uid || password.length < 6 || password.length > 128) {
+    throw new HttpsError("invalid-argument", "La contraseña debe tener entre 6 y 128 caracteres.");
+  }
+  await authAdmin.updateUser(uid, { password });
+  return { success: true };
 });
 
 exports.deleteManagedUser = onCall(async (request) => {

@@ -12,8 +12,10 @@ import {
   HiOutlinePencilSquare,
   HiOutlineTrash,
   HiOutlineXMark,
-  HiOutlineMagnifyingGlass,
-  HiOutlineExclamationCircle,
+    HiOutlineMagnifyingGlass,
+    HiOutlineExclamationCircle,
+    HiOutlineEye,
+    HiOutlineEyeSlash,
 } from "react-icons/hi2";
 import adminStyles from "../admin.module.css";
 import styles from "./usuarios.module.css";
@@ -56,13 +58,16 @@ export default function UsuariosPage() {
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState(null);
   const [form, setForm] = useState({
+    username: "",
     email: "",
     displayName: "",
     role: "lector",
     isActive: true,
+    password: "",
   });
   const [customPerms, setCustomPerms] = useState({});
   const [saving, setSaving] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [error, setError] = useState("");
 
@@ -86,6 +91,7 @@ export default function UsuariosPage() {
     const term = search.toLowerCase();
     return (
       (u.email || "").toLowerCase().includes(term) ||
+      (u.username || "").toLowerCase().includes(term) ||
       (u.displayName || "").toLowerCase().includes(term) ||
       (ROLE_LABELS[u.role] || (u.role === null ? "Sin rol" : "")).toLowerCase().includes(term)
     );
@@ -93,8 +99,9 @@ export default function UsuariosPage() {
 
   const openCreate = () => {
     setEditId(null);
-    setForm({ email: "", displayName: "", role: "lector", isActive: true });
+    setForm({ username: "", email: "", displayName: "", role: "lector", isActive: true, password: "" });
     setCustomPerms({});
+    setShowPassword(false);
     setError("");
     setShowModal(true);
   };
@@ -102,19 +109,30 @@ export default function UsuariosPage() {
   const openEdit = (u) => {
     setEditId(u.id);
     setForm({
+      username: u.username || "",
       email: u.email || "",
       displayName: u.displayName || "",
       role: u.role || "lector",
       isActive: u.isActive !== false,
+      password: "",
     });
     setCustomPerms(u.customPermissions || {});
+    setShowPassword(false);
     setError("");
     setShowModal(true);
   };
 
   const handleSave = async () => {
-    if (!form.email.trim()) {
-      setError("El email es requerido");
+    if (!form.username.trim() && !form.email.trim()) {
+      setError("El nombre de usuario es requerido");
+      return;
+    }
+    if (!editId && !form.username.trim()) {
+      setError("Los usuarios nuevos deben tener nombre de usuario");
+      return;
+    }
+    if (!editId && form.password.length < 6) {
+      setError("La contraseña debe tener al menos 6 caracteres");
       return;
     }
     setSaving(true);
@@ -122,12 +140,14 @@ export default function UsuariosPage() {
     try {
       const role = form.role === "none" ? null : form.role;
       const data = {
+        username: form.username.trim().toLowerCase(),
         email: form.email.trim().toLowerCase(),
-        displayName: form.displayName.trim() || form.email.trim(),
+        displayName: form.displayName.trim() || form.username.trim() || form.email.trim(),
         photoURL: "",
         role,
         isActive: form.isActive,
       };
+      if (form.password) data.password = form.password;
       if (role) {
         const defaultPerms = ROLE_PERMISSIONS[role] || {};
         const hasCustom = Object.keys(customPerms).some(
@@ -141,7 +161,7 @@ export default function UsuariosPage() {
       setShowModal(false);
       loadUsers();
     } catch (err) {
-      setError("Error al guardar el usuario");
+      setError(err?.details || err?.message || "Error al guardar el usuario");
       console.error(err);
     } finally {
       setSaving(false);
@@ -268,8 +288,8 @@ export default function UsuariosPage() {
                       )}
                     </div>
                     <div className={styles.userInfo}>
-                      <span className={styles.userName}>{u.displayName || u.email}</span>
-                      <span className={styles.userEmail}>{u.email}</span>
+                      <span className={styles.userName}>{u.displayName || u.username || u.email}</span>
+                      <span className={styles.userEmail}>{u.username ? `@${u.username}` : u.email}</span>
                     </div>
                     {!u.isActive && <span className={styles.inactiveBadge}>Inactivo</span>}
                   </div>
@@ -319,15 +339,46 @@ export default function UsuariosPage() {
               {error && <div className={styles.formError}>{error}</div>}
 
               <div className="admin-form-group">
-                <label className="admin-form-label">Email *</label>
-                <input
-                  className="admin-form-input"
-                  value={form.email}
-                  onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
-                  placeholder="usuario@email.com"
-                  disabled={!!editId}
-                />
-              </div>
+                  <label className="admin-form-label">Nombre de usuario *</label>
+                  <input
+                    className="admin-form-input"
+                    value={form.username}
+                    onChange={(e) => setForm((p) => ({ ...p, username: e.target.value }))}
+                    placeholder="usuario_123"
+                    disabled={!!editId && !!form.username}
+                  />
+                </div>
+
+                <p className={styles.permissionsHint}>Solo letras, números, punto, guion o guion bajo. Entre 3 y 30 caracteres.</p>
+
+                {(!editId || form.username) && <div className="admin-form-group">
+                  <label className="admin-form-label">Contraseña {editId ? "(opcional para cambiarla)" : "*"}</label>
+                  <div style={{ position: "relative" }}>
+                    <input
+                      className="admin-form-input"
+                      style={{ paddingRight: "2.75rem" }}
+                      type={showPassword ? "text" : "password"}
+                      value={form.password}
+                      onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
+                      placeholder={editId ? "Dejar vacío para conservarla" : "Mínimo 6 caracteres"}
+                      minLength={6}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((value) => !value)}
+                      aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                      title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                      style={{ position: "absolute", top: "50%", right: "0.65rem", transform: "translateY(-50%)", border: 0, background: "transparent", color: "#64748b", cursor: "pointer", display: "flex", padding: "0.25rem" }}
+                    >
+                      {showPassword ? <HiOutlineEyeSlash size={20} /> : <HiOutlineEye size={20} />}
+                    </button>
+                  </div>
+                </div>}
+
+                {editId && !form.username && <div className="admin-form-group">
+                  <label className="admin-form-label">Email de cuenta existente</label>
+                  <input className="admin-form-input" value={form.email} disabled />
+                </div>}
 
               <div className="admin-form-group">
                 <label className="admin-form-label">Nombre</label>
@@ -412,7 +463,7 @@ export default function UsuariosPage() {
             </div>
             <div className={styles.modalFooter}>
               <button className="btn btn-ghost" onClick={() => setShowModal(false)} disabled={saving}>Cancelar</button>
-              <button className="btn btn-primary" onClick={handleSave} disabled={saving || !form.email.trim()}>
+              <button className="btn btn-primary" onClick={handleSave} disabled={saving || (!form.username.trim() && !form.email.trim())}>
                 {saving ? "Guardando..." : editId ? "Guardar" : "Crear Usuario"}
               </button>
             </div>

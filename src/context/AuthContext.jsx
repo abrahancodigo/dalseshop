@@ -14,6 +14,7 @@ import {
 import { auth, googleProvider, SUPER_ADMIN_EMAIL } from "@/lib/firebase";
 import { ensureUserProfile, getUserById, saveUser } from "@/lib/firestore";
 import { ROLE_PERMISSIONS, hasPermission, canManage } from "@/lib/permissions";
+import { normalizeUsername, usernameToAuthEmail } from "@/lib/authUsername";
 
 const AuthContext = createContext(null);
 
@@ -239,12 +240,13 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const registerWithEmail = async (email, password, displayName) => {
+  const registerWithUsername = async (username, password, displayName) => {
+    const normalizedUsername = normalizeUsername(username);
     isRegisteringRef.current = true;
     try {
-      const credential = await createUserWithEmailAndPassword(auth, email, password);
+      const credential = await createUserWithEmailAndPassword(auth, usernameToAuthEmail(normalizedUsername), password);
       const fbUser = credential.user;
-      const name = (displayName || email.split("@")[0]).trim();
+      const name = (displayName || normalizedUsername).trim();
       await updateProfile(fbUser, { displayName: name });
       await resolveUser(auth.currentUser);
     } finally {
@@ -290,8 +292,8 @@ export function AuthProvider({ children }) {
         authTiming,
         hasPermission: (perm) => hasPermission(permissions, perm),
         canManage: (perm) => canManage(permissions, perm),
-        loginWithGoogle,
-        registerWithEmail,
+         loginWithGoogle,
+         registerWithUsername,
         loginWithEmail,
         resetPassword,
         logout,

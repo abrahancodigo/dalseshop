@@ -1873,6 +1873,11 @@ export async function saveManagedUser(data) {
   return result.data?.id;
 }
 
+export async function resetManagedUserPassword(uid, password) {
+  const callable = httpsCallable(functions, "resetManagedUserPassword");
+  await callable({ uid, password });
+}
+
 export async function deleteManagedUser(uid) {
   const callable = httpsCallable(functions, "deleteManagedUser");
   await callable({ uid });
