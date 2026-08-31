@@ -70,6 +70,14 @@ const getRecordDate = (record) => {
   return value?.toDate ? value.toDate() : new Date(value);
 };
 
+const latestRecordsByProduct = (records) => records.reduce((recordMap, record) => {
+  const current = recordMap[record.productId];
+  const recordTime = getRecordDate(record)?.getTime() || 0;
+  const currentTime = getRecordDate(current)?.getTime() || 0;
+  if (!current || recordTime >= currentTime) recordMap[record.productId] = record;
+  return recordMap;
+}, {});
+
 const getResearchStatus = (draft) => {
   if (!draft?.id) return "pending";
   const prices = COMPETITORS.map(({ key }) => draft.competitors?.[key]?.price);
@@ -162,8 +170,7 @@ export default function EstudioMercadoPage() {
       .then(([productList, records]) => {
         if (cancelled) return;
         setProducts(productList);
-        const recordMap = {};
-        records.forEach((record) => { recordMap[record.productId] = record; });
+        const recordMap = latestRecordsByProduct(records);
         setDrafts(Object.fromEntries(productList.map((product) => [product.id, makeDraft(product, recordMap[product.id])] )));
       })
       .catch((error) => {
@@ -182,9 +189,7 @@ export default function EstudioMercadoPage() {
       return;
     }
     getMarketResearch({ periodKey: comparePeriod }).then((records) => {
-      const map = {};
-      records.forEach((record) => { map[record.productId] = record; });
-      setComparisonDrafts(map);
+      setComparisonDrafts(latestRecordsByProduct(records));
     });
   }, [comparePeriod, period, user, canView]);
 

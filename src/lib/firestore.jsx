@@ -1516,11 +1516,12 @@ export async function saveMarketResearch(id, data) {
       return id;
     }
 
-    const newRef = await addDoc(collection(db, "market_research"), {
+    const researchId = `${normalized.periodKey}_${normalized.productId}`;
+    await setDoc(doc(db, "market_research", researchId), {
       ...normalized,
       createdAt: serverTimestamp(),
-    });
-    return newRef.id;
+    }, { merge: true });
+    return researchId;
   } catch (error) {
     console.error("Error saving market research:", error);
     throw error;
