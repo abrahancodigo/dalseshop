@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo, useRef } from "react";
 import StoreHeader from "@/components/store/Header";
 import StoreFooter from "@/components/store/Footer";
 import ProductCard from "@/components/store/ProductCard";
-import { getProducts } from "@/lib/firestore";
+import { getProductsPage } from "@/lib/firestore";
 import { useCart } from "@/context/CartContext";
 import { useStore } from "@/context/StoreContext";
 import { formatPrice } from "@/lib/format";
@@ -38,6 +38,9 @@ export default function ProductosPage() {
   const [priceMax, setPriceMax] = useState(500);
   const [sortBy, setSortBy] = useState("relevance");
   const [displayedCount, setDisplayedCount] = useState(INITIAL_COUNT);
+  const [nextCursor, setNextCursor] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const { addItem } = useCart();
   const prevMarcaRef = useRef(searchParams.get("marca"));
 
@@ -46,10 +49,21 @@ export default function ProductosPage() {
 
   useEffect(() => {
     let cancelled = false;
+    const options = {
+      isActive: true,
+      ...(selectedCategories.length === 1 ? { category: selectedCategories[0] } : {}),
+      ...(selectedBrands.length === 1 ? { brand: selectedBrands[0] } : {}),
+    };
     (async () => {
       try {
-        const prods = await getProducts({ isActive: true });
-        if (!cancelled) setProducts(prods);
+        setLoading(true);
+        const result = await getProductsPage({ ...options, limitCount: INITIAL_COUNT });
+        if (!cancelled) {
+          setProducts(result.products);
+          setNextCursor(result.cursor);
+          setHasMore(result.hasMore);
+          setDisplayedCount(INITIAL_COUNT);
+        }
       } catch (err) {
         console.error("Error loading products:", err);
       } finally {
@@ -57,7 +71,7 @@ export default function ProductosPage() {
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [selectedCategories, selectedBrands]);
 
   useEffect(() => {
     const params = new URLSearchParams(searchParams);
@@ -182,8 +196,26 @@ export default function ProductosPage() {
     setSelectedCategories(val ? [val] : []);
   };
 
-  const loadMore = () => {
-    setDisplayedCount((prev) => prev + LOAD_MORE_COUNT);
+  const loadMore = async () => {
+    if (!hasMore || !nextCursor || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const result = await getProductsPage({
+        isActive: true,
+        ...(selectedCategories.length === 1 ? { category: selectedCategories[0] } : {}),
+        ...(selectedBrands.length === 1 ? { brand: selectedBrands[0] } : {}),
+        cursor: nextCursor,
+        limitCount: LOAD_MORE_COUNT,
+      });
+      setProducts((current) => [...current, ...result.products]);
+      setNextCursor(result.cursor);
+      setHasMore(result.hasMore);
+      setDisplayedCount((prev) => prev + result.products.length);
+    } catch (err) {
+      console.error("Error loading more products:", err);
+    } finally {
+      setLoadingMore(false);
+    }
   };
 
   const displayedProducts = filtered.slice(0, displayedCount);
@@ -324,13 +356,13 @@ export default function ProductosPage() {
                     ))}
                   </div>
 
-                  {displayedCount < filtered.length && (
+                  {hasMore && (
                     <div className={styles.loadMoreWrapper}>
-                      <button className={styles.loadMoreBtn} onClick={loadMore}>
-                        Cargar más productos
+                      <button className={styles.loadMoreBtn} onClick={loadMore} disabled={loadingMore}>
+                        {loadingMore ? "Cargando..." : "Cargar más productos"}
                       </button>
                       <span className={styles.loadMoreInfo}>
-                        Mostrando {displayedCount} de {filtered.length} productos
+                        Mostrando {displayedCount} productos cargados
                       </span>
                     </div>
                   )}

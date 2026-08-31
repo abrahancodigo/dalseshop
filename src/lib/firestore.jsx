@@ -13,6 +13,7 @@ import {
   serverTimestamp,
   onSnapshot,
   limit,
+  startAfter,
   writeBatch,
   runTransaction
 } from "firebase/firestore";
@@ -273,7 +274,8 @@ export async function getProducts(options = {}) {
     if (options.category) constraints.push(where("category", "==", options.category));
     if (options.brand) constraints.push(where("brand", "==", options.brand));
     
-    const limitVal = options.limitCount ? limit(options.limitCount) : null;
+    // Never allow an accidental unbounded collection read.
+    const limitVal = limit(Math.max(1, Math.min(Number(options.limitCount) || 500, 500)));
     
     const qFinal = query(
       q, 
@@ -465,7 +467,7 @@ export async function getReviews(productId, includePending = false) {
       if (productId) {
         const constraints = [where("productId", "==", productId)];
         if (!includePending) constraints.push(where("isApproved", "==", true));
-        constraints.push(orderBy("createdAt", "desc"));
+        constraints.push(orderBy("createdAt", "desc"), limit(50));
         q = query(collection(db, "reviews"), ...constraints);
       } else {
         const constraints = [];
@@ -658,9 +660,9 @@ export async function getBlogPosts(publishedOnly = false) {
   try {
     let q;
     if (publishedOnly) {
-      q = query(collection(db, "posts"), where("isPublished", "==", true), orderBy("createdAt", "desc"));
+      q = query(collection(db, "posts"), where("isPublished", "==", true), orderBy("createdAt", "desc"), limit(200));
     } else {
-      q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
+      q = query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(200));
     }
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -668,8 +670,8 @@ export async function getBlogPosts(publishedOnly = false) {
     console.warn("getBlogPosts ordered query failed, trying without order:", error.message);
     try {
       const q = publishedOnly
-        ? query(collection(db, "posts"), where("isPublished", "==", true))
-        : collection(db, "posts");
+         ? query(collection(db, "posts"), where("isPublished", "==", true), limit(200))
+         : query(collection(db, "posts"), limit(200));
       const snapshot = await getDocs(q);
       return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (err2) {
@@ -694,7 +696,7 @@ export async function getCouponByCode(code) {
 
 export async function getCoupons() {
   try {
-    const q = query(collection(db, "coupons"), orderBy("createdAt", "desc"));
+    const q = query(collection(db, "coupons"), orderBy("createdAt", "desc"), limit(200));
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
@@ -709,7 +711,8 @@ export async function getOrdersByEmail(email) {
     const q = query(
       collection(db, "orders"),
       where("customerEmail", "==", email),
-      orderBy("createdAt", "desc")
+      orderBy("createdAt", "desc"),
+      limit(100)
     );
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -719,7 +722,8 @@ export async function getOrdersByEmail(email) {
     try {
       const q = query(
         collection(db, "orders"),
-        where("customerEmail", "==", email)
+        where("customerEmail", "==", email),
+        limit(100)
       );
       const snapshot = await getDocs(q);
       const results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -739,7 +743,7 @@ export async function getOrdersByEmail(email) {
 export async function getOrders(options = {}) {
   try {
     const constraints = [orderBy("createdAt", "desc")];
-    if (options.limitCount) constraints.push(limit(options.limitCount));
+    constraints.push(limit(Math.max(1, Math.min(Number(options.limitCount) || 500, 500))));
     const q = query(collection(db, "orders"), ...constraints);
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -799,7 +803,7 @@ export async function getPageBySlug(slug) {
 
 export async function getPages() {
   try {
-    const q = query(collection(db, "pages"), orderBy("updatedAt", "desc"));
+    const q = query(collection(db, "pages"), orderBy("updatedAt", "desc"), limit(200));
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({
       id: doc.id,
@@ -808,7 +812,7 @@ export async function getPages() {
   } catch (error) {
     console.warn("Pages orderBy failed, trying without order:", error.message);
     try {
-      const q = query(collection(db, "pages"));
+       const q = query(collection(db, "pages"), limit(200));
       const snapshot = await getDocs(q);
       return snapshot.docs.map(doc => ({
         id: doc.id,
@@ -822,13 +826,13 @@ export async function getPages() {
 }
 
 export function onPagesChange(callback) {
-  const q = query(collection(db, "pages"), orderBy("updatedAt", "desc"));
+  const q = query(collection(db, "pages"), orderBy("updatedAt", "desc"), limit(200));
   let currentUnsub = onSnapshot(q, (snapshot) => {
     callback(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
   }, (error) => {
     console.warn("Pages listener failed, trying without order:", error.message);
     currentUnsub();
-    currentUnsub = onSnapshot(collection(db, "pages"), (snapshot) => {
+    currentUnsub = onSnapshot(query(collection(db, "pages"), limit(200)), (snapshot) => {
       callback(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     }, (err2) => {
       console.error("Pages fallback listener also failed:", err2);
@@ -1041,7 +1045,7 @@ export async function searchCustomers(searchTerm) {
 export async function getCustomers(options = {}) {
   try {
     const constraints = [orderBy("lastOrderAt", "desc")];
-    if (options.limitCount) constraints.push(limit(options.limitCount));
+    constraints.push(limit(Math.max(1, Math.min(Number(options.limitCount) || 500, 500))));
     const q = query(collection(db, "customers"), ...constraints);
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -1254,7 +1258,7 @@ export async function saveBlogConfig(data) {
 
 export async function getSubscribers() {
   try {
-    const snapshot = await getDocs(collection(db, "subscribers"));
+    const snapshot = await getDocs(query(collection(db, "subscribers"), orderBy("subscribedAt", "desc"), limit(200)));
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
     console.error("Error fetching subscribers:", error);
@@ -1318,7 +1322,7 @@ export async function getUserById(id) {
 
 export async function getUsers() {
   try {
-    const q = query(collection(db, "users"), orderBy("email", "asc"));
+    const q = query(collection(db, "users"), orderBy("email", "asc"), limit(200));
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
@@ -1354,7 +1358,7 @@ export async function deleteUser(id) {
 }
 
 export function onUsersChange(callback) {
-  const q = query(collection(db, "users"), orderBy("email", "asc"));
+  const q = query(collection(db, "users"), orderBy("email", "asc"), limit(200));
   return onSnapshot(q, (snapshot) => {
     const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     callback(users);
@@ -1381,7 +1385,7 @@ export async function getInventoryMovements(options = {}) {
     if (options.productId) constraints.push(where("productId", "==", options.productId));
     if (options.type) constraints.push(where("type", "==", options.type));
     constraints.push(orderBy("createdAt", "desc"));
-    if (options.limitCount) constraints.push(limit(options.limitCount));
+    constraints.push(limit(Math.max(1, Math.min(Number(options.limitCount) || 500, 500))));
     const q = query(collection(db, "inventory_movements"), ...constraints);
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -1389,7 +1393,7 @@ export async function getInventoryMovements(options = {}) {
     console.error("Error fetching movements:", error);
     try {
       const fallbackConstraints = [orderBy("createdAt", "desc")];
-      if (options.limitCount) fallbackConstraints.push(limit(options.limitCount));
+      fallbackConstraints.push(limit(Math.max(1, Math.min(Number(options.limitCount) || 500, 500))));
       const fallback = query(collection(db, "inventory_movements"), ...fallbackConstraints);
       const snap = await getDocs(fallback);
       let results = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -1438,12 +1442,47 @@ export async function updateInventoryMovement(id, data) {
   }
 }
 
+/** Fetch one bounded catalog page using a Firestore cursor. */
+export async function getProductsPage(options = {}) {
+  const pageSize = Math.max(1, Math.min(Number(options.limitCount) || 24, 100));
+  const constraints = [];
+  if (options.isActive !== undefined) constraints.push(where("isActive", "==", options.isActive));
+  if (options.category) constraints.push(where("category", "==", options.category));
+  if (options.brand) constraints.push(where("brand", "==", options.brand));
+  if (options.cursor) constraints.push(startAfter(options.cursor));
+  constraints.push(orderBy("createdAt", "desc"), limit(pageSize));
+
+  try {
+    const snapshot = await getDocs(query(collection(db, "products"), ...constraints));
+    return {
+      products: snapshot.docs.map((d) => ({ id: d.id, ...d.data() })),
+      cursor: snapshot.docs.at(-1) || null,
+      hasMore: snapshot.docs.length === pageSize,
+    };
+  } catch (error) {
+    if (!options.cursor && (error.code === "failed-precondition" || error.message?.includes("index"))) {
+      const snapshot = await getDocs(query(
+        collection(db, "products"),
+        ...(options.isActive !== undefined ? [where("isActive", "==", options.isActive)] : []),
+        limit(pageSize)
+      ));
+      let products = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+      if (options.category) products = products.filter((p) => p.category === options.category);
+      if (options.brand) products = products.filter((p) => p.brand === options.brand);
+      return { products, cursor: null, hasMore: false };
+    }
+    console.error("Error fetching product page:", error);
+    return { products: [], cursor: null, hasMore: false };
+  }
+}
+
 // ----- Market research -----
 export async function getMarketResearch(options = {}) {
   try {
     const constraints = [];
     if (options.periodKey) constraints.push(where("periodKey", "==", options.periodKey));
     if (options.productId) constraints.push(where("productId", "==", options.productId));
+    constraints.push(limit(Math.max(1, Math.min(Number(options.limitCount) || 500, 500))));
     const snapshot = await getDocs(query(collection(db, "market_research"), ...constraints));
     return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
   } catch (error) {
@@ -1454,7 +1493,7 @@ export async function getMarketResearch(options = {}) {
 
 export async function saveMarketResearch(id, data) {
   try {
-    const dalsePriceKeys = ["standard", "siman", "calleja", "mayoreo"];
+    const dalsePriceKeys = ["standard", "siman", "calleja", "operadora", "mayoreo"];
     const dalsePrices = data.dalsePrices && typeof data.dalsePrices === "object"
       ? Object.fromEntries(Object.entries(data.dalsePrices)
         .filter(([key]) => dalsePriceKeys.includes(key))
@@ -1577,13 +1616,13 @@ export async function bulkSaveProducts(products) {
 // --- EMPLOYEES ---
 export async function getEmployees() {
   try {
-    const q = query(collection(db, "employees"), orderBy("name", "asc"));
+    const q = query(collection(db, "employees"), orderBy("name", "asc"), limit(200));
     const snapshot = await getDocs(q);
     return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
   } catch (error) {
     console.warn("Employees orderBy failed, trying without order:", error.message);
     try {
-      const snapshot = await getDocs(collection(db, "employees"));
+      const snapshot = await getDocs(query(collection(db, "employees"), limit(200)));
       const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
       list.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
       return list;
@@ -1638,7 +1677,7 @@ export async function getAttendanceRecords(options = {}) {
     if (options.date) constraints.push(where("date", "==", options.date));
     if (options.dateFrom) constraints.push(where("date", ">=", options.dateFrom));
     if (options.dateTo) constraints.push(where("date", "<=", options.dateTo));
-    const limitVal = options.limitCount ? limit(options.limitCount) : null;
+    const limitVal = limit(Math.max(1, Math.min(Number(options.limitCount) || 500, 500)));
     const q = query(collection(db, "attendance_records"), ...constraints, ...(limitVal ? [limitVal] : []));
     const snapshot = await getDocs(q);
     return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -1708,13 +1747,13 @@ export async function bulkSaveAttendance(records) {
 // --- PAYROLL PERIODS ---
 export async function getPayrollPeriods() {
   try {
-    const q = query(collection(db, "payroll_periods"), orderBy("createdAt", "desc"));
+    const q = query(collection(db, "payroll_periods"), orderBy("createdAt", "desc"), limit(200));
     const snapshot = await getDocs(q);
     return snapshot.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => !p.deleted);
   } catch (error) {
     console.warn("Payroll periods orderBy failed:", error.message);
     try {
-      const snapshot = await getDocs(collection(db, "payroll_periods"));
+      const snapshot = await getDocs(query(collection(db, "payroll_periods"), limit(200)));
       return snapshot.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => !p.deleted);
     } catch (err2) {
       console.error("Error fetching payroll periods:", err2);
@@ -1787,13 +1826,13 @@ export async function restorePayrollPeriod(id) {
 
 export async function getTrashedPayrollPeriods() {
   try {
-    const q = query(collection(db, "payroll_periods"), orderBy("createdAt", "desc"));
+    const q = query(collection(db, "payroll_periods"), orderBy("createdAt", "desc"), limit(200));
     const snapshot = await getDocs(q);
     return snapshot.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.deleted);
   } catch (error) {
     console.warn("Trashed periods query failed:", error.message);
     try {
-      const snapshot = await getDocs(collection(db, "payroll_periods"));
+      const snapshot = await getDocs(query(collection(db, "payroll_periods"), limit(200)));
       return snapshot.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.deleted);
     } catch (err2) {
       console.error("Error fetching trashed periods:", err2);
@@ -1826,13 +1865,13 @@ export async function savePayrollConfig(data) {
 // --- LOANS & ADVANCES ---
 export async function getLoans() {
   try {
-    const q = query(collection(db, "loans"), orderBy("createdAt", "desc"));
+    const q = query(collection(db, "loans"), orderBy("createdAt", "desc"), limit(200));
     const snapshot = await getDocs(q);
     return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
   } catch (error) {
     console.warn("Loans query failed, trying without order:", error.message);
     try {
-      const snapshot = await getDocs(collection(db, "loans"));
+      const snapshot = await getDocs(query(collection(db, "loans"), limit(200)));
       const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
       list.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
       return list;

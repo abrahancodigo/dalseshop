@@ -244,7 +244,7 @@ export default function InventarioPage() {
 
   const loadProducts = async () => {
     setLoading(true);
-    try { setProducts(await getProducts()); } catch (e) { console.error(e); }
+    try { setProducts(await getProducts({ limitCount: 500 })); } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };
 

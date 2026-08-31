@@ -37,7 +37,7 @@ export default function ProductosPage() {
 
   const loadData = async () => {
     try {
-      const [prods, cats] = await Promise.all([getProducts(), getCategories()]);
+      const [prods, cats] = await Promise.all([getProducts({ limitCount: 500 }), getCategories()]);
       setProducts(prods);
        setCategories(cats);
        await loadRatings(prods);

@@ -25,6 +25,7 @@ const DALSE_PRICE_TYPES = [
   { key: "standard", label: "Precio Dalse" },
   { key: "siman", label: "Precio Dalse Siman" },
   { key: "calleja", label: "Precio Dalse Calleja" },
+  { key: "operadora", label: "Precio Dalse Operadora" },
   { key: "mayoreo", label: "Precio Dalse Mayoreo" },
 ];
 
@@ -108,8 +109,12 @@ function CurrencyInput({ value, onChange, disabled, placeholder, label }) {
 
 function MarketTableHeader({ priceLabel }) {
   return <thead><tr>
-    <th className={styles.productCol}>Producto</th><th>{priceLabel}</th>
-    {COMPETITORS.map((competitor) => <th key={competitor.key}>{competitor.label}</th>)}
+    <th className={`${styles.productCol} ${styles.productHeader}`}><span className={styles.headerGroup}>IDENTIFICACIÓN</span><strong>Producto</strong></th>
+    <th className={styles.dalseHeader}><span className={styles.headerGroup}>PRECIO DALSE</span><strong>{priceLabel}</strong></th>
+    {COMPETITORS.map((competitor, index) => <th key={competitor.key} className={index === 0 ? styles.competitorStart : ""}>
+      {index === 0 && <span className={styles.headerGroup}>COMPETENCIA</span>}
+      <strong>{competitor.label}</strong>
+    </th>)}
     <th>Acciones</th>
   </tr></thead>;
 }
@@ -150,7 +155,10 @@ export default function EstudioMercadoPage() {
     if (!user || !canView) return;
     let cancelled = false;
     setLoading(true);
-    Promise.all([getProducts({ isActive: true }), getMarketResearch({ periodKey: period })])
+    Promise.all([
+      getProducts({ isActive: true, limitCount: 500 }),
+      getMarketResearch({ periodKey: period, limitCount: 500 }),
+    ])
       .then(([productList, records]) => {
         if (cancelled) return;
         setProducts(productList);
@@ -158,7 +166,12 @@ export default function EstudioMercadoPage() {
         records.forEach((record) => { recordMap[record.productId] = record; });
         setDrafts(Object.fromEntries(productList.map((product) => [product.id, makeDraft(product, recordMap[product.id])] )));
       })
-      .catch(() => setMessage("No se pudieron cargar los datos del estudio."))
+      .catch((error) => {
+        console.error("Error cargando estudio de mercado:", error);
+        setMessage(error?.code === "permission-denied"
+          ? "Firebase rechazó la lectura de estudios de mercado."
+          : "No se pudieron cargar los datos del estudio. Revisa tu conexión.");
+      })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [period, user, canView]);
@@ -168,7 +181,7 @@ export default function EstudioMercadoPage() {
       setComparisonDrafts({});
       return;
     }
-    getMarketResearch({ periodKey: comparePeriod }).then((records) => {
+    getMarketResearch({ periodKey: comparePeriod, limitCount: 500 }).then((records) => {
       const map = {};
       records.forEach((record) => { map[record.productId] = record; });
       setComparisonDrafts(map);
@@ -274,8 +287,14 @@ export default function EstudioMercadoPage() {
       });
       updateDraft(product.id, { id });
       setMessage(`Estudio de ${product.name} guardado.`);
-    } catch {
-      setMessage("No se pudo guardar el estudio.");
+    } catch (error) {
+      console.error("Error guardando estudio de mercado:", error);
+      const reason = error?.code === "permission-denied"
+        ? "No tienes permiso para guardar estudios de mercado."
+        : error?.code === "unauthenticated"
+          ? "Tu sesión expiró. Inicia sesión nuevamente."
+          : "No se pudo guardar el estudio. Revisa tu conexión e inténtalo otra vez.";
+      setMessage(reason);
     } finally {
       setSavingId(null);
     }
@@ -318,9 +337,13 @@ export default function EstudioMercadoPage() {
     uploadEvidence(product, competitorKey, imageItem.getAsFile());
   };
 
+  const focusEvidenceForPaste = (event) => {
+    if (canEdit && !event.target.closest("button, label, input")) event.currentTarget.focus();
+  };
+
   const openHistory = async (product) => {
     setHistory({ product, loading: true, records: [] });
-    const records = await getMarketResearch({ productId: product.id });
+    const records = await getMarketResearch({ productId: product.id, limitCount: 500 });
     setHistory({ product, loading: false, records: records.sort((a, b) => String(b.periodKey).localeCompare(String(a.periodKey))) });
   };
 
@@ -419,8 +442,14 @@ export default function EstudioMercadoPage() {
           <select className={styles.filter} value={filterBrand} onChange={(event) => setFilterBrand(event.target.value)}><option value="">Todas las marcas</option>{brands.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>
           <select className={styles.filter} value={filterStatus} onChange={(event) => setFilterStatus(event.target.value)}><option value="all">Todos los estados</option><option value="complete">Completas</option><option value="partial">Parciales</option><option value="pending">Sin investigar</option><option value="stale">Vencidas</option></select>
           <span className={styles.counter}><HiOutlineClipboardDocumentList /> {filteredProducts.length} productos</span>
-          {!canEdit && <span className={styles.readOnly}>Solo lectura</span>}
-        </div>
+         {!canEdit && <span className={styles.readOnly}>Solo lectura</span>}
+         </div>
+
+         <div className={styles.legend} aria-label="Leyenda de diferencias">
+           <span><i className={styles.legendDotGreen} /> Dalse más barato</span>
+           <span><i className={styles.legendDotRed} /> Dalse más caro</span>
+           <span><i className={styles.legendDotGray} /> Sin precio de comparación</span>
+         </div>
 
         <div className={styles.summaryGrid}>
           <div className={styles.summaryCard}><span>Productos</span><strong>{stats.total}</strong></div>
@@ -436,7 +465,7 @@ export default function EstudioMercadoPage() {
         {loading ? <div className={styles.loading}><div className="spinner" /> Cargando productos...</div> : (
           <div className={styles.tableWrap} ref={tableWrapRef}>
             <table className={styles.table}>
-            <MarketTableHeader priceLabel={DALSE_PRICE_TYPES.find(({ key }) => key === dalsePriceType)?.label || "Precio Dalse"} />
+             <MarketTableHeader priceLabel={DALSE_PRICE_TYPES.find(({ key }) => key === dalsePriceType)?.label || "Precio Dalse"} />
               <tbody>
                 {visibleProducts.map((product) => {
                   const draft = drafts[product.id] || makeDraft(product);
@@ -445,7 +474,7 @@ export default function EstudioMercadoPage() {
                        {product.images?.[0] ? <button type="button" className={styles.productImageButton} onClick={() => openImage(product.images[0])} title="Ver imagen grande"><img src={product.images[0]} alt={`Imagen de ${product.name}`} /></button> : <div className={styles.imagePlaceholder}><HiOutlinePhoto /></div>}
                       <div><strong>{product.name}</strong><small>Código de barras: {product.barcode || "Sin código de barras"}</small>{product.sku && <small>SKU: {product.sku}</small>}</div>
                     </div></td>
-                    <td><CurrencyInput value={getDalsePrice(draft, dalsePriceType)} disabled={!canEdit} label={`${DALSE_PRICE_TYPES.find(({ key }) => key === dalsePriceType)?.label || "Precio Dalse"} de ${product.name}`} onChange={(value) => updateDalsePrice(product.id, value)} /></td>
+                    <td className={styles.dalseCell}><CurrencyInput value={getDalsePrice(draft, dalsePriceType)} disabled={!canEdit} label={`${DALSE_PRICE_TYPES.find(({ key }) => key === dalsePriceType)?.label || "Precio Dalse"} de ${product.name}`} onChange={(value) => updateDalsePrice(product.id, value)} /></td>
                     {COMPETITORS.map(({ key }) => {
                       const competitor = draft.competitors[key] || {};
                       const difference = getDifference(getDalsePrice(draft, dalsePriceType), competitor.price);
@@ -454,7 +483,7 @@ export default function EstudioMercadoPage() {
                         <div className={styles.competitorCell}>
                           <CurrencyInput value={competitor.price} disabled={!canEdit} placeholder="0.00" label={`Precio de ${key} para ${product.name}`} onChange={(value) => updateCompetitor(product.id, key, { price: value })} />
                           {difference !== null && <span className={`${styles.difference} ${difference > 0 ? styles.expensive : styles.cheaper}`}>{difference > 0 ? "+" : ""}{difference.toFixed(1)}% {difference > 0 ? "arriba" : difference < 0 ? "abajo" : "igual"}</span>}
-                          <div className={styles.evidence} tabIndex={canEdit ? 0 : -1} onPaste={(event) => handlePaste(event, product, key)} title={canEdit ? "Pega una captura con Ctrl + V" : "Sin permiso de edición"}>
+                          <div className={`${styles.evidence} ${!competitor.screenshotUrl ? styles.emptyEvidence : ""} ${uploadingKey === uploadKey ? styles.uploadingEvidence : ""}`} tabIndex={canEdit ? 0 : -1} role={canEdit ? "button" : undefined} onClick={focusEvidenceForPaste} onContextMenu={focusEvidenceForPaste} onPaste={(event) => handlePaste(event, product, key)} title={canEdit ? "Haz clic para enfocar y pega con Ctrl + V" : "Sin evidencia"}>
                             {competitor.screenshotUrl ? <button type="button" className={styles.evidencePreview} onClick={() => openImage(competitor.screenshotUrl)} title="Ver captura completa"><img src={competitor.screenshotUrl} alt={`Evidencia ${key}`} /></button> : <><HiOutlinePhoto /><span>{canEdit ? "Pegar captura" : "Sin evidencia"}</span></>}
                             {canEdit && <label className={styles.uploadButton}><HiOutlineArrowUpTray /><input type="file" accept="image/*" onChange={(event) => uploadEvidence(product, key, event.target.files?.[0])} />{uploadingKey === uploadKey ? "Subiendo" : "Subir"}</label>}
                           </div>
@@ -469,7 +498,7 @@ export default function EstudioMercadoPage() {
           </div>
         )}
 
-         {stickyTableHeader?.visible && <div className={styles.stickyTableHeader} style={{ left: stickyTableHeader.left, width: stickyTableHeader.width }}><table className={styles.table} style={{ width: stickyTableHeader.tableWidth, minWidth: stickyTableHeader.tableWidth, marginLeft: -stickyTableHeader.scrollLeft }}><colgroup>{stickyTableHeader.columns.map((width, index) => <col key={index} style={{ width }} />)}</colgroup><MarketTableHeader priceLabel={DALSE_PRICE_TYPES.find(({ key }) => key === dalsePriceType)?.label || "Precio Dalse"} /></table></div>}
+          {stickyTableHeader?.visible && <div className={styles.stickyTableHeader} style={{ left: stickyTableHeader.left, width: stickyTableHeader.width }}><table className={styles.table} style={{ width: stickyTableHeader.tableWidth, minWidth: stickyTableHeader.tableWidth, marginLeft: -stickyTableHeader.scrollLeft }}><colgroup>{stickyTableHeader.columns.map((width, index) => <col key={index} style={{ width }} />)}</colgroup><MarketTableHeader priceLabel={DALSE_PRICE_TYPES.find(({ key }) => key === dalsePriceType)?.label || "Precio Dalse"} /></table></div>}
 
          {!loading && filteredProducts.length > 0 && <div className={styles.pagination}><span>Mostrando {visibleProducts.length} de {filteredProducts.length}</span><label>Filas<select value={pageSize} onChange={(event) => setPageSize(Number(event.target.value))}><option value={25}>25</option><option value={50}>50</option><option value={100}>100</option><option value={0}>Todas</option></select></label><button disabled={currentPage <= 1} onClick={() => setCurrentPage((page) => page - 1)}>Anterior</button><strong>Página {currentPage} de {totalPages}</strong><button disabled={currentPage >= totalPages} onClick={() => setCurrentPage((page) => page + 1)}>Siguiente</button></div>}
          {!loading && filteredProducts.length === 0 && <div className={styles.empty}>No hay productos que coincidan con la búsqueda.</div>}

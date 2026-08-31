@@ -107,9 +107,9 @@ service cloud.firestore {
         : document == 'features' ? 'features'
         : document == 'shipping' ? 'shipping'
         : document == 'blog' ? 'blog'
-        : document == 'payroll' ? 'payroll'
-        : document == 'orderCounter' ? 'orders'
-        : 'settings'
+          : document == 'payroll' ? 'payroll'
+          : document == 'orderCounter' ? 'orders'
+          : 'settings'
       );
     }
 
