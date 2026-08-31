@@ -1482,12 +1482,11 @@ export async function getMarketResearch(options = {}) {
     const constraints = [];
     if (options.periodKey) constraints.push(where("periodKey", "==", options.periodKey));
     if (options.productId) constraints.push(where("productId", "==", options.productId));
-    constraints.push(limit(Math.max(1, Math.min(Number(options.limitCount) || 500, 500))));
     const snapshot = await getDocs(query(collection(db, "market_research"), ...constraints));
     return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
   } catch (error) {
     console.error("Error fetching market research:", error);
-    return [];
+    throw error;
   }
 }
 

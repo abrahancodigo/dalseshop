@@ -157,7 +157,7 @@ export default function EstudioMercadoPage() {
     setLoading(true);
     Promise.all([
       getProducts({ isActive: true, limitCount: 500 }),
-      getMarketResearch({ periodKey: period, limitCount: 500 }),
+      getMarketResearch({ periodKey: period }),
     ])
       .then(([productList, records]) => {
         if (cancelled) return;
@@ -181,7 +181,7 @@ export default function EstudioMercadoPage() {
       setComparisonDrafts({});
       return;
     }
-    getMarketResearch({ periodKey: comparePeriod, limitCount: 500 }).then((records) => {
+    getMarketResearch({ periodKey: comparePeriod }).then((records) => {
       const map = {};
       records.forEach((record) => { map[record.productId] = record; });
       setComparisonDrafts(map);
@@ -343,7 +343,7 @@ export default function EstudioMercadoPage() {
 
   const openHistory = async (product) => {
     setHistory({ product, loading: true, records: [] });
-    const records = await getMarketResearch({ productId: product.id, limitCount: 500 });
+    const records = await getMarketResearch({ productId: product.id });
     setHistory({ product, loading: false, records: records.sort((a, b) => String(b.periodKey).localeCompare(String(a.periodKey))) });
   };
 
