@@ -10,7 +10,17 @@
     "deploy:functions": "npm run build && firebase deploy",
     "deploy:rules": "firebase deploy --only firestore:rules,storage",
     "cleanup:storage": "node scripts/cleanup-storage.js",
-    "cleanup:storage:dry": "node scripts/cleanup-storage.js --dry-run"
+    "cleanup:storage:dry": "node scripts/cleanup-storage.js --dry-run",
+    "dev:local": "vite --mode localdev --host 0.0.0.0",
+    "emulators": "FUNCTIONS_DISCOVERY_TIMEOUT=60 firebase emulators:start --project demo-dalseshop --only auth,firestore,functions,storage",
+    "prebuild": "node scripts/prepare-storefront.mjs",
+    "prepare:storefront": "node scripts/prepare-storefront.mjs",
+    "optimize:images": "node scripts/optimize-storefront-images.mjs",
+    "test:storefront": "node --test scripts/storefront.test.mjs",
+    "test:browser": "playwright test",
+    "cf:dev": "npm run build && wrangler dev",
+    "cf:deploy": "npm run build && wrangler deploy",
+    "cf:check": "npm run build && wrangler deploy --dry-run"
   },
   "dependencies": {
     "@imgly/background-removal": "^1.7.0",
@@ -18,16 +28,18 @@
     "firebase": "^12.13.0",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
-    "nodemailer": "^9.0.5",
     "qrcode": "^1.5.4",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-icons": "^5.6.0",
     "react-router-dom": "^7.5.0",
-    "xlsx": "^0.18.5"
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@vitejs/plugin-react": "^4.4.1",
-    "vite": "^6.3.5"
+    "sharp": "^0.35.4",
+    "vite": "^6.3.5",
+    "wrangler": "^4.131.2"
   }
 }

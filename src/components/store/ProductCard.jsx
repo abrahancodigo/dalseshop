@@ -5,6 +5,7 @@ import { useStore } from "@/context/StoreContext";
 import { formatPrice } from "@/lib/format";
 import styles from "./ProductCard.module.css";
 import { HiOutlineShoppingCart } from "react-icons/hi2";
+import StoreImage from "./StoreImage";
 
 export default function ProductCard({ product, onAddToCart }) {
   const { features } = useStore();
@@ -24,7 +25,7 @@ export default function ProductCard({ product, onAddToCart }) {
         className={styles.imageWrapper} 
       >
         {product.images?.[0] ? (
-          <img src={product.images[0]} alt={product.name} className={styles.image} />
+          <StoreImage src={product.images[0]} alt={product.name} sizes="(max-width: 768px) calc((100vw - 44px) / 2), (max-width: 1200px) 25vw, 330px" className={styles.image} />
         ) : (
           <div className={styles.imagePlaceholder}>
             <HiOutlineShoppingCart />

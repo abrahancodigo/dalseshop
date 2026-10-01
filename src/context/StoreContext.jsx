@@ -1,16 +1,11 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
-import {
-  getStoreSettings,
-  getStoreTheme,
-  getStoreFeatures,
-  getStoreNavigation,
-  getBrands,
-  getCategories,
-} from "@/lib/firestore";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { storefrontCacheScope } from "@/lib/storefrontEnvironment.mjs";
+import { getStorefrontBootstrap } from "@/lib/storefrontBootstrap.mjs";
 
 const StoreContext = createContext(null);
+const STORE_CACHE_KEY = `dalseshop_store_v2_${storefrontCacheScope}`;
 
 const defaultSettings = {
   name: "Mi Tienda",
@@ -103,19 +98,35 @@ const defaultNavigation = {
 };
 
 export function StoreProvider({ children }) {
-  const [settings, setSettings] = useState(defaultSettings);
-  const [theme, setTheme] = useState(defaultTheme);
-  const [features, setFeatures] = useState(defaultFeatures);
-  const [navigation, setNavigation] = useState(defaultNavigation);
-  const [brands, setBrands] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // Hydrate from local cache so header/footer/theme render instantly on return visits.
+  // Fresh data from Firestore arrives right after and updates silently.
+  const [initialCache] = useState(() => {
+    const prepared = getStorefrontBootstrap()?.store || null;
+    try {
+      const raw = localStorage.getItem(STORE_CACHE_KEY);
+      if (!raw) return prepared;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object") return prepared;
+      return parsed;
+    } catch {
+      return prepared;
+    }
+  });
+  const [settings, setSettings] = useState({ ...defaultSettings, ...(initialCache?.settings || {}) });
+  const [theme, setTheme] = useState({ ...defaultTheme, ...(initialCache?.theme || {}) });
+  const [features, setFeatures] = useState({ ...defaultFeatures, ...(initialCache?.features || {}) });
+  const [navigation, setNavigation] = useState({ ...defaultNavigation, ...(initialCache?.navigation || {}) });
+  const [brands, setBrands] = useState(Array.isArray(initialCache?.brands) ? initialCache.brands : []);
+  const [categories, setCategories] = useState(Array.isArray(initialCache?.categories) ? initialCache.categories : []);
+  const [loading, setLoading] = useState(!initialCache);
 
   useEffect(() => {
     let cancelled = false;
 
     (async () => {
       try {
+        const { getStoreSettings, getStoreTheme, getStoreFeatures, getStoreNavigation, getBrands, getCategories } = await import("@/lib/firestore");
+        if (cancelled) return;
         const [
           settingsData,
           themeData,
@@ -148,6 +159,22 @@ export function StoreProvider({ children }) {
         }
         setBrands(brandsData || []);
         setCategories(categoriesData || []);
+        // Refresh the local cache for instant loads next time
+        try {
+          localStorage.setItem(
+            STORE_CACHE_KEY,
+            JSON.stringify({
+              settings: settingsData || {},
+              theme: themeData || {},
+              features: featuresData || {},
+              navigation: navigationData || {},
+              brands: brandsData || [],
+              categories: categoriesData || [],
+            })
+          );
+        } catch {
+          // storage full or blocked: app keeps working, just without cache
+        }
       } catch (err) {
         console.warn("Error loading store config:", err.message);
       } finally {
@@ -198,21 +225,27 @@ export function StoreProvider({ children }) {
     root.style.setProperty("--color-footer-text", theme.footerTextColor || theme.secondaryContrastColor || autoSecondaryText);
   }, [theme]);
 
+  // Memoized value: prevents re-rendering every consumer on unrelated state changes
+  const value = useMemo(
+    () => ({
+      settings,
+      theme,
+      features,
+      navigation,
+      brands,
+      categories,
+      loading,
+      defaultSettings,
+      defaultTheme,
+      defaultFeatures,
+      defaultNavigation,
+    }),
+    [settings, theme, features, navigation, brands, categories, loading]
+  );
+
   return (
     <StoreContext.Provider
-      value={{
-        settings,
-        theme,
-        features,
-        navigation,
-        brands,
-        categories,
-        loading,
-        defaultSettings,
-        defaultTheme,
-        defaultFeatures,
-        defaultNavigation,
-      }}
+      value={value}
     >
       {children}
     </StoreContext.Provider>

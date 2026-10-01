@@ -242,12 +242,75 @@
   color: rgba(255, 255, 255, 0.5);
 }
 
+/* Skeleton loading (perceived performance) */
+.skeleton {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+}
+
+.skeletonBar {
+  height: 64px;
+  background: var(--color-secondary);
+}
+
+.skeletonHero {
+  flex: 1;
+  min-height: 420px;
+  margin: 1.5rem auto;
+  width: min(1120px, calc(100% - 3rem));
+  border-radius: 16px;
+  background: linear-gradient(100deg, #eef0f4 40%, #e2e6ec 50%, #eef0f4 60%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.2s ease-in-out infinite;
+}
+
+.skeletonCards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+  width: min(1120px, calc(100% - 3rem));
+  margin: 0 auto 2rem;
+}
+
+.skeletonCard {
+  height: 280px;
+  border-radius: 12px;
+  background: linear-gradient(100deg, #eef0f4 40%, #e2e6ec 50%, #eef0f4 60%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes skeletonShimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
 @media (max-width: 640px) {
+  .heroOrb1,
+  .heroOrb2,
+  .heroOrb3 {
+    filter: blur(55px);
+    animation: none;
+  }
+
   .heroTitle {
     font-size: 2rem;
   }
 
   .heroSlogan {
     font-size: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .heroOrb1,
+  .heroOrb2,
+  .heroOrb3,
+  .heroContent,
+  .skeletonHero,
+  .skeletonCard {
+    animation: none;
   }
 }

@@ -17,12 +17,13 @@ import {
   HiOutlineArrowRightOnRectangle, 
   HiOutlineMagnifyingGlass 
 } from "react-icons/hi2";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef, lazy, Suspense } from "react";
+import { useMediaQuery } from "@/hooks/useViewport";
 import { useAuth } from "@/context/AuthContext";
-import { getMenuPages } from "@/lib/firestore";
 import styles from "./Header.module.css";
-import SearchBar from "./SearchBar";
+const SearchBar = lazy(() => import("./SearchBar"));
 import BrandTicker from "./BrandTicker";
+import StoreImage from "./StoreImage";
 
 export function AuthButtons() {
   const { user, isAdmin, hasPermission, logout } = useAuth();
@@ -91,9 +92,12 @@ export default function StoreHeader() {
   const [badgeKey, setBadgeKey] = useState(0);
   const [menuPages, setMenuPages] = useState([]);
   const prevTotalRef = useRef(totalItems);
+  const navRef = useRef(null);
+  const searchRef = useRef(null);
+  const mobile = useMediaQuery("(max-width: 768px)");
 
   useEffect(() => {
-    getMenuPages()
+    import("@/lib/firestore").then(({ getMenuPages }) => getMenuPages())
       .then(setMenuPages)
       .catch(() => setMenuPages([]));
   }, []);
@@ -105,25 +109,31 @@ export default function StoreHeader() {
     }
   }, [totalItems]);
 
-  // Close modal on Escape key
-  const handleKeyDown = useCallback((e) => {
-    if (e.key === 'Escape' && searchModalOpen) {
-      setSearchModalOpen(false);
-    }
-  }, [searchModalOpen]);
-
   useEffect(() => {
-    if (searchModalOpen) {
-      document.addEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
+    if (!searchModalOpen && !(menuOpen && mobile)) return;
+    const oldOverflow = document.body.style.overflow;
+    const oldFocus = document.activeElement;
+    document.body.style.overflow = 'hidden';
+    if (menuOpen && !searchModalOpen) navRef.current?.querySelector('button')?.focus();
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') { setSearchModalOpen(false); setMenuOpen(false); }
+      if (event.key === 'Tab') {
+        const panel = searchModalOpen ? searchRef.current : navRef.current;
+        const controls = [...(panel?.querySelectorAll('a[href], button, input, select, textarea, [tabindex="0"]') || [])].filter((element) => !element.disabled && element.getClientRects().length);
+        const first = controls[0];
+        const last = controls.at(-1);
+        if (!first) return;
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = '';
+      document.body.style.overflow = oldOverflow;
+      oldFocus?.focus?.({ preventScroll: true });
     };
-  }, [searchModalOpen, handleKeyDown]);
+  }, [searchModalOpen, menuOpen, mobile]);
 
   const menuItems = navigation?.header?.menuItems || [];
 
@@ -139,7 +149,7 @@ export default function StoreHeader() {
         <div className={`container ${styles.inner}`}>
           <Link to="/" className={styles.brand}>
             {settings.logo ? (
-              <img src={settings.logo} alt={settings.name} className={styles.logo} />
+              <StoreImage src={settings.logo} alt={settings.name} sizes="180px" loading="eager" className={styles.logo} />
             ) : (
               <div className={styles.logoPlaceholder}>
                 {(settings.name || "DS").substring(0, 2).toUpperCase()}
@@ -147,16 +157,16 @@ export default function StoreHeader() {
             )}
           </Link>
 
-          <nav className={`${styles.nav} ${menuOpen ? styles.navOpen : ""}`}>
+          <nav ref={navRef} id="store-navigation" aria-label="Navegación principal" inert={mobile && !menuOpen} className={`${styles.nav} ${menuOpen ? styles.navOpen : ""}`}>
             <div className={styles.mobileDrawerHeader}>
               <Link to="/" className={styles.brand} onClick={() => setMenuOpen(false)}>
                 {settings.logo ? (
-                  <img src={settings.logo} alt={settings.name} className={styles.logo} />
+                  <StoreImage src={settings.logo} alt={settings.name} sizes="180px" className={styles.logo} />
                 ) : (
                   <span className={styles.drawerBrandName}>{settings.name}</span>
                 )}
               </Link>
-              <button className={styles.closeBtn} onClick={() => setMenuOpen(false)}>
+              <button className={styles.closeBtn} onClick={() => setMenuOpen(false)} aria-label="Cerrar menú">
                 <HiOutlineXMark />
               </button>
             </div>
@@ -228,7 +238,7 @@ export default function StoreHeader() {
               </button>
             )}
             {features.cart && (
-              <button className={styles.cartBtn} onClick={() => setIsOpen(true)}>
+              <button className={styles.cartBtn} onClick={() => { setMenuOpen(false); setIsOpen(true); }} aria-label={`Abrir carrito, ${totalItems} productos`}>
                 <HiOutlineShoppingCart />
                 {totalItems > 0 && (
                   <span key={badgeKey} className={`${styles.cartBadge} ${styles.cartBadgeBounce}`}>{totalItems}</span>
@@ -240,7 +250,7 @@ export default function StoreHeader() {
               <AuthButtons />
             </div>
 
-            <button className={styles.menuBtn} onClick={() => setMenuOpen(true)}>
+            <button className={styles.menuBtn} onClick={() => setMenuOpen(true)} aria-label="Abrir menú" aria-expanded={menuOpen} aria-controls="store-navigation">
               <HiOutlineBars3 />
             </button>
           </div>
@@ -248,12 +258,12 @@ export default function StoreHeader() {
 
         {searchModalOpen && (
           <div className={styles.searchModalOverlay} onClick={() => setSearchModalOpen(false)}>
-            <div className={styles.searchModalContent} onClick={(e) => e.stopPropagation()}>
+            <div ref={searchRef} className={styles.searchModalContent} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Buscar productos">
               <button className={styles.searchModalClose} onClick={() => setSearchModalOpen(false)} aria-label="Cerrar búsqueda">
                 <HiOutlineXMark size={22} />
                 <span>Cerrar</span>
               </button>
-              <SearchBar onResultClick={() => setSearchModalOpen(false)} autoFocus />
+              <Suspense fallback={<p role="status">Cargando búsqueda…</p>}><SearchBar onResultClick={() => setSearchModalOpen(false)} autoFocus /></Suspense>
             </div>
           </div>
         )}

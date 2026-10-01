@@ -8,7 +8,8 @@ export default function CookieConsent() {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    const consent = localStorage.getItem("dalseshop_cookie_consent");
+    let consent;
+    try { consent = localStorage.getItem("dalseshop_cookie_consent"); } catch { /* Storage may be disabled. */ }
     if (!consent) {
       const timer = setTimeout(() => setIsVisible(true), 500);
       return () => clearTimeout(timer);
@@ -16,7 +17,7 @@ export default function CookieConsent() {
   }, []);
 
   const handleAccept = () => {
-    localStorage.setItem("dalseshop_cookie_consent", "true");
+    try { localStorage.setItem("dalseshop_cookie_consent", "true"); } catch { /* Dismiss for this session. */ }
     setIsVisible(false);
   };
 
@@ -25,13 +26,13 @@ export default function CookieConsent() {
   return (
     <div className={styles.bar} role="status" aria-live="polite">
       <p className={styles.text}>
-        Usamos cookies{" "}
-        <Link to="/terminos-y-condiciones" className={styles.link}>
-          info
+        Usamos almacenamiento local para mantener tu sesión y carrito.{" "}
+        <Link to="/politica-de-privacidad" className={styles.link}>
+          Política de privacidad
         </Link>
       </p>
       <button onClick={handleAccept} className={styles.btn}>
-        ok
+        Entendido
       </button>
     </div>
   );

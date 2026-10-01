@@ -7,6 +7,7 @@ import { formatPrice } from "@/lib/format";
 import { Link } from "react-router-dom";
 import { useStore } from "@/context/StoreContext";
 import styles from "./SearchBar.module.css";
+import StoreImage from "./StoreImage";
 
 export default function SearchBar({ onResultClick, autoFocus = false }) {
   const { features } = useStore();
@@ -16,13 +17,15 @@ export default function SearchBar({ onResultClick, autoFocus = false }) {
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [error, setError] = useState('');
   const searchRef = useRef(null);
   const inputRef = useRef(null);
 
   // Auto-focus the input when the component mounts (useful for modal)
   useEffect(() => {
     if (autoFocus && inputRef.current) {
-      setTimeout(() => inputRef.current.focus(), 150);
+      const timer = setTimeout(() => inputRef.current?.focus(), 150);
+      return () => clearTimeout(timer);
     }
   }, [autoFocus]);
 
@@ -37,6 +40,9 @@ export default function SearchBar({ onResultClick, autoFocus = false }) {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    setError('');
+    setLoading(false);
     if (query.length < 2) {
       setResults([]);
       setIsOpen(false);
@@ -47,14 +53,17 @@ export default function SearchBar({ onResultClick, autoFocus = false }) {
     const delayDebounceFn = setTimeout(async () => {
       setLoading(true);
       setIsOpen(true);
-      const data = await searchProducts(query);
-      setResults(data);
-      setLoading(false);
-      setHasSearched(true);
-      setIsOpen(true);
+      try {
+        const data = await searchProducts(query);
+        if (!cancelled) { setResults(data); setHasSearched(true); }
+      } catch {
+        if (!cancelled) { setResults([]); setError('No pudimos buscar. Inténtalo nuevamente.'); }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     }, 400);
 
-    return () => clearTimeout(delayDebounceFn);
+    return () => { cancelled = true; clearTimeout(delayDebounceFn); };
   }, [query]);
 
   const handleClear = () => {
@@ -74,6 +83,8 @@ export default function SearchBar({ onResultClick, autoFocus = false }) {
         <input
           ref={inputRef}
           type="text"
+          aria-label="Buscar productos"
+          onKeyDown={(event) => { if (event.key === 'Escape') setIsOpen(false); }}
           placeholder="Buscar productos, marcas, códigos..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -95,7 +106,7 @@ export default function SearchBar({ onResultClick, autoFocus = false }) {
 
       {isOpen && (
         <div className={styles.resultsDropdown}>
-          {loading ? (
+          {error ? <p role="alert" className={styles.statusMsg}>{error}</p> : loading ? (
             <div className={styles.statusMsg}>
               <div className={styles.loadingSpinner}></div>
               <span>Buscando productos...</span>
@@ -119,9 +130,10 @@ export default function SearchBar({ onResultClick, autoFocus = false }) {
                   }}
                 >
                   <div className={styles.itemImage}>
-                    <img 
+                    <StoreImage sizes="64px"
                       src={product.images?.[0] || product.image || "/placeholder-product.png"} 
                       alt={product.name} 
+                      loading="lazy" decoding="async"
                     />
                   </div>
                   <div className={styles.itemInfo}>
@@ -138,7 +150,7 @@ export default function SearchBar({ onResultClick, autoFocus = false }) {
                 </Link>
               ))}
               <Link 
-                to={`/productos?search=${query}`} 
+                to={`/productos?search=${encodeURIComponent(query)}`}
                 className={styles.viewAll}
                 onClick={() => {
                   setIsOpen(false);

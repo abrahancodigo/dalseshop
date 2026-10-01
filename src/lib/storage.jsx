@@ -6,103 +6,12 @@ import {
 } from "firebase/storage";
 import { storage } from "./firebase";
 
-/**
- * Compress an image before upload using Canvas.
- * Iteratively reduces quality and dimensions until the result is ≤1MB.
- * @param {File} file - The original image file
- * @returns {Promise<File>} Compressed file
- */
-async function compressImage(file) {
-  // Skip if not an image or if already small enough
-  if (!file.type.startsWith("image/")) return file;
+import { createImageVariants } from "./imageVariants.mjs";
+import { readResponsiveImage, imageURLWithoutMetadata, withResponsiveMetadata } from "./responsiveImage.mjs";
 
-  const MAX_BYTES = 1 * 1024 * 1024; // 1MB
-  if (file.size <= MAX_BYTES) return file;
-
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = (event) => {
-      const img = new Image();
-      img.src = event.target.result;
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
-
-        const tryCompress = (maxDim, quality, outputType) => {
-          let width = img.width;
-          let height = img.height;
-
-          if (width > maxDim || height > maxDim) {
-            if (width > height) {
-              height = Math.round((height * maxDim) / width);
-              width = maxDim;
-            } else {
-              width = Math.round((width * maxDim) / height);
-              height = maxDim;
-            }
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-          ctx.clearRect(0, 0, width, height);
-          ctx.drawImage(img, 0, 0, width, height);
-
-          canvas.toBlob(
-            (blob) => {
-              if (!blob) return resolve(file);
-              if (blob.size <= MAX_BYTES || (maxDim <= 800 && quality <= 0.6)) {
-                const ext = outputType === "image/png" ? ".png" : ".jpg";
-                const result = new File([blob], file.name.replace(/\.[^.]+$/, ext), {
-                  type: outputType,
-                  lastModified: Date.now(),
-                });
-                return resolve(result);
-              }
-              // Still too large — try next tier
-              const next = qualitySteps.find(
-                (s) => (s.quality < quality || s.maxDim < maxDim) && s.outputType === outputType
-              ) || qualitySteps.find((s) => s.outputType !== outputType); // Fallback to JPEG if PNG fails
-              
-              if (next) return tryCompress(next.maxDim, next.quality, next.outputType);
-              
-              // Nothing left to try
-              const ext = outputType === "image/png" ? ".png" : ".jpg";
-              const result = new File([blob], file.name.replace(/\.[^.]+$/, ext), {
-                type: outputType,
-                lastModified: Date.now(),
-              });
-              resolve(result);
-            },
-            outputType,
-            quality
-          );
-        };
-
-        const maxOriginalDim = Math.max(img.width, img.height);
-        // Steps: try PNG first (if originally PNG), then fallback to JPEG for guaranteed compression
-        const isOriginallyPng = file.type === "image/png";
-        const qualitySteps = isOriginallyPng
-          ? [
-              { maxDim: Math.min(1920, maxOriginalDim), quality: 0.9, outputType: "image/png" },
-              { maxDim: Math.min(1600, maxOriginalDim), quality: 0.85, outputType: "image/png" },
-              { maxDim: Math.min(1920, maxOriginalDim), quality: 0.85, outputType: "image/jpeg" },
-              { maxDim: Math.min(1600, maxOriginalDim), quality: 0.8, outputType: "image/jpeg" },
-              { maxDim: Math.min(1200, maxOriginalDim), quality: 0.75, outputType: "image/jpeg" },
-            ]
-          : [
-              { maxDim: Math.min(1920, maxOriginalDim), quality: 0.85 },
-              { maxDim: Math.min(1600, maxOriginalDim), quality: 0.8 },
-              { maxDim: Math.min(1200, maxOriginalDim), quality: 0.75 },
-              { maxDim: Math.min(1000, maxOriginalDim), quality: 0.7 },
-            ].map((s) => ({ ...s, outputType: "image/jpeg" }));
-
-        tryCompress(qualitySteps[0].maxDim, qualitySteps[0].quality, qualitySteps[0].outputType);
-      };
-      img.onerror = () => resolve(file);
-    };
-    reader.onerror = () => resolve(file);
-  });
+async function uploadRaw(file, path) {
+  const snapshot = await uploadBytes(ref(storage, path), file, { contentType: file.type, cacheControl: "public,max-age=31536000,immutable" });
+  return getDownloadURL(snapshot.ref);
 }
 
 /**
@@ -112,10 +21,30 @@ async function compressImage(file) {
  * @returns {Promise<string>} Download URL
  */
 export async function uploadFile(file, path) {
-  const storageRef = ref(storage, path);
-  const snapshot = await uploadBytes(storageRef, file);
-  const url = await getDownloadURL(snapshot.ref);
-  return url;
+  if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif'].includes(file.type)) {
+    throw new Error('Usa imágenes JPG, PNG, WebP, GIF o AVIF.');
+  }
+  if (file.size > 20 * 1024 * 1024) throw new Error('La imagen debe pesar como máximo 20 MB.');
+  let prepared = null;
+  try { prepared = await createImageVariants(file); }
+  catch (error) { console.warn("No se pudieron crear variantes; se utilizará la imagen original.", error); }
+  const original = file.size < 10 * 1024 * 1024 ? file : prepared?.variants.at(-1)?.blob;
+  if (!original || original.size >= 10 * 1024 * 1024) throw new Error('La imagen debe pesar menos de 10 MB después de optimizarla.');
+  const url = await uploadRaw(original, path);
+  if (!prepared) return url;
+  const uploaded = [];
+  try {
+    for (const variant of prepared.variants) {
+      const variantPath = `${path}.responsive/${variant.width}.webp`;
+      const variantURL = await uploadRaw(variant.blob, variantPath);
+      uploaded.push({ width: variant.width, url: variantURL });
+    }
+    return withResponsiveMetadata(url, prepared.width, prepared.height, uploaded);
+  } catch (error) {
+    await Promise.allSettled(uploaded.map((variant) => deleteObject(ref(storage, variant.url))));
+    console.warn("Variantes no disponibles; se conserva el original.", error);
+    return url;
+  }
 }
 
 /**
@@ -124,16 +53,12 @@ export async function uploadFile(file, path) {
  */
 export async function deleteFile(url) {
   if (!url || typeof url !== "string") return;
-  // Basic check if it's a firebase storage URL
-  if (!url.includes("firebasestorage.googleapis.com")) {
-    console.warn("Attempted to delete non-storage URL:", url);
-    return;
-  }
-  
   try {
-    const storageRef = ref(storage, url);
+    const storageRef = ref(storage, imageURLWithoutMetadata(url));
+    if (storageRef.bucket !== storage.app.options.storageBucket) return;
+    const responsive = readResponsiveImage(url);
+    await Promise.allSettled((responsive?.variants || []).map((variant) => deleteObject(ref(storage, variant.src))));
     await deleteObject(storageRef);
-    console.log("File deleted from Storage");
   } catch (error) {
     if (error.code === 'storage/object-not-found') {
       console.warn("File already deleted or not found in Storage:", url);
@@ -150,11 +75,8 @@ export async function deleteFile(url) {
  * @returns {Promise<string>} Download URL
  */
 export async function uploadImage(file, folder = "images") {
-  // Compress before upload
-  const processedFile = await compressImage(file);
-  
-  const timestamp = Date.now();
+  const timestamp = `${Date.now()}_${crypto.randomUUID()}`;
   const safeName = file.name.replace(/[^a-zA-Z0-9.]/g, "_");
   const path = `${folder}/${timestamp}_${safeName}`;
-  return uploadFile(processedFile, path);
+  return uploadFile(file, path);
 }

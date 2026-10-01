@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useState, useMemo } from "react";
 import StoreHeader from "@/components/store/Header";
 import StoreFooter from "@/components/store/Footer";
 import ProductCard from "@/components/store/ProductCard";
 import { getProducts } from "@/lib/firestore";
+import StoreImage from "@/components/store/StoreImage";
+import { readCatalogSession, saveCatalogSession } from "@/lib/catalogSession.mjs";
+import { storefrontCacheScope } from "@/lib/storefrontEnvironment.mjs";
 import { useCart } from "@/context/CartContext";
 import { useStore } from "@/context/StoreContext";
 import { formatPrice } from "@/lib/format";
@@ -19,86 +22,44 @@ export default function ProductosPage() {
   const { brands, categories: allCategories, features } = useStore();
   const showPrices = features.showPrices !== false;
   const [searchParams, setSearchParams] = useSearchParams();
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [selectedCategories, setSelectedCategories] = useState(
-    () => {
-      const catParam = searchParams.get("categoria");
-      return catParam ? [catParam] : [];
-    }
-  );
-  const [selectedBrands, setSelectedBrands] = useState(
-    () => {
-      const brandParam = searchParams.get("marca");
-      return brandParam ? [brandParam] : [];
-    }
-  );
-  const [priceMin, setPriceMin] = useState(0);
-  const [priceMax, setPriceMax] = useState(500);
-  const [sortBy, setSortBy] = useState("relevance");
-  const [displayedCount, setDisplayedCount] = useState(INITIAL_COUNT);
+  const [products, setProducts] = useState(() => readCatalogSession(storefrontCacheScope) || []);
+  const [loading, setLoading] = useState(() => !readCatalogSession(storefrontCacheScope));
+  const [error, setError] = useState(false);
+  const [retry, setRetry] = useState(0);
+  const search = searchParams.get("q") || "";
+  const selectedCategories = searchParams.getAll("categoria");
+  const selectedBrands = searchParams.getAll("marca");
+  const priceMin = Math.max(0, Number(searchParams.get("min")) || 0);
+  const priceMax = Math.max(0, Number(searchParams.get("max")) || 0);
+  const sortBy = searchParams.get("orden") || "relevance";
+  const displayedCount = Math.min(10000, Math.max(INITIAL_COUNT, Number(searchParams.get("cantidad")) || INITIAL_COUNT));
   const { addItem } = useCart();
-  const prevMarcaRef = useRef(searchParams.get("marca"));
-
-  // Use categories from StoreContext (already loaded globally), no need for a separate listener
   const categories = useMemo(() => allCategories.filter(c => c.isActive), [allCategories]);
+  const updateFilters = (values, resetCount = true) => {
+    const params = new URLSearchParams(searchParams);
+    if (resetCount) params.delete("cantidad");
+    for (const [name, value] of Object.entries(values)) {
+      params.delete(name);
+      for (const entry of Array.isArray(value) ? value : [value]) if (entry) params.append(name, String(entry));
+    }
+    setSearchParams(params, { replace: true });
+  };
+  const setSearch = (value) => updateFilters({ q: value });
+  const setSortBy = (value) => updateFilters({ orden: value === "relevance" ? null : value });
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      try {
-        const prods = await getProducts({ isActive: true });
-        if (!cancelled) setProducts(prods);
-      } catch (err) {
-        console.error("Error loading products:", err);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
+    setError(false);
+    getProducts({ isActive: true }).then((prods) => {
+      if (cancelled) return;
+      saveCatalogSession(storefrontCacheScope, prods);
+      setProducts(prods);
+    }).catch((err) => { if (!cancelled) { setError(true); console.error("Error loading products:", err); } })
+      .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, []);
+  }, [retry]);
 
-  useEffect(() => {
-    const params = new URLSearchParams(searchParams);
-    if (selectedCategories.length === 1) {
-      params.set("categoria", selectedCategories[0]);
-    } else {
-      params.delete("categoria");
-    }
-    setSearchParams(params, { replace: true });
-  }, [selectedCategories]);
-
-  useEffect(() => {
-    const params = new URLSearchParams(searchParams);
-    if (selectedBrands.length === 1) {
-      params.set("marca", selectedBrands[0]);
-    } else {
-      params.delete("marca");
-    }
-    setSearchParams(params, { replace: true });
-  }, [selectedBrands]);
-
-  // Sync URL → state when marca param changes externally (e.g. brand logo click)
-  useEffect(() => {
-    const brandParam = searchParams.get("marca");
-    if (brandParam !== prevMarcaRef.current) {
-      prevMarcaRef.current = brandParam;
-      setSelectedBrands(brandParam ? [brandParam] : []);
-    }
-  }, [searchParams]);
-
-  const maxPrice = useMemo(() => {
-    if (products.length === 0) return 500;
-    const max = Math.max(...products.map((p) => p.price));
-    return max || 500;
-  }, [products]);
-
-  useEffect(() => {
-    if (priceMax === 0 || priceMax > maxPrice) {
-      setPriceMax(maxPrice);
-    }
-  }, [maxPrice, priceMax]);
+  const maxPrice = useMemo(() => Math.max(500, ...products.map((product) => Number(product.price) || 0)), [products]);
 
   const filtered = useMemo(() => {
     let result = products.filter((p) => {
@@ -121,7 +82,7 @@ export default function ProductosPage() {
     else if (sortBy === "newest")
       result.sort(
         (a, b) =>
-          (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0)
+          (b.createdAt?.toMillis?.() || b.createdAt?.seconds * 1000 || 0) - (a.createdAt?.toMillis?.() || a.createdAt?.seconds * 1000 || 0)
       );
     return result;
   }, [products, search, selectedCategories, selectedBrands, priceMin, priceMax, sortBy]);
@@ -130,32 +91,12 @@ export default function ProductosPage() {
     selectedCategories.length +
     selectedBrands.length +
     (priceMin > 0 ? 1 : 0) +
-    (priceMax < maxPrice ? 1 : 0);
+    (priceMax > 0 && priceMax < maxPrice ? 1 : 0);
 
-  const clearFilters = () => {
-    setSelectedCategories([]);
-    setSelectedBrands([]);
-    setPriceMin(0);
-    setPriceMax(maxPrice);
-    setSearch("");
-    setSortBy("relevance");
-    setDisplayedCount(INITIAL_COUNT);
-  };
-
-  const toggleCategory = (id) => {
-    setSelectedCategories((prev) =>
-      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
-    );
-  };
-
-  const toggleBrand = (id) => {
-    setSelectedBrands((prev) =>
-      prev.includes(id) ? prev.filter((b) => b !== id) : [...prev, id]
-    );
-  };
+  const clearFilters = () => updateFilters({ categoria: null, marca: null, min: null, max: null, q: null, orden: null });
 
   const priceRangeValue = useMemo(() => {
-    if (priceMin === 0 && priceMax === maxPrice) return "";
+    if (priceMin === 0 && (priceMax === 0 || priceMax === maxPrice)) return "";
     if (priceMin === 0 && priceMax === 50) return "0-50";
     if (priceMin === 50 && priceMax === 100) return "50-100";
     if (priceMin === 100 && priceMax === 200) return "100-200";
@@ -163,28 +104,13 @@ export default function ProductosPage() {
     return "";
   }, [priceMin, priceMax, maxPrice]);
 
-  const handlePriceChange = (val) => {
-    if (!val) {
-      setPriceMin(0);
-      setPriceMax(maxPrice);
-    } else {
-      const [min, max] = val.split("-").map(Number);
-      setPriceMin(min);
-      setPriceMax(max || maxPrice);
-    }
+  const handlePriceChange = (value) => {
+    const [min, max] = value ? value.split("-").map(Number) : [0, 0];
+    updateFilters({ min, max });
   };
-
-  const handleBrandChange = (val) => {
-    setSelectedBrands(val ? [val] : []);
-  };
-
-  const handleCategoryChange = (val) => {
-    setSelectedCategories(val ? [val] : []);
-  };
-
-  const loadMore = () => {
-    setDisplayedCount((prev) => prev + LOAD_MORE_COUNT);
-  };
+  const handleBrandChange = (value) => updateFilters({ marca: value });
+  const handleCategoryChange = (value) => updateFilters({ categoria: value });
+  const loadMore = () => updateFilters({ cantidad: displayedCount + LOAD_MORE_COUNT }, false);
 
   const displayedProducts = filtered.slice(0, displayedCount);
 
@@ -199,14 +125,15 @@ export default function ProductosPage() {
       <StoreHeader />
 
       <main className={styles.main}>
+        {error && <div className="container" role="status"><p>No pudimos actualizar los productos.</p><button className="btn btn-outline" onClick={() => setRetry((value) => value + 1)}>Volver a intentar</button></div>}
         {/* Brand banner — full width, outside container */}
         {selectedBrands.length === 1 && (() => {
           const brand = brands.find(b => b.id === selectedBrands[0]);
           if (!brand || !brand.bannerImage) return null;
           return (
             <div className={styles.brandBanner}>
-              <img src={brand.bannerImage} alt="" className={styles.brandBannerBlur} aria-hidden="true" />
-              <img src={brand.bannerImage} alt={brand.name} className={styles.brandBannerBg} />
+              <StoreImage src={brand.bannerImage} sizes="100vw" alt="" className={styles.brandBannerBlur} aria-hidden="true" />
+              <StoreImage src={brand.bannerImage} sizes="100vw" loading="eager" alt={brand.name} className={styles.brandBannerBg} />
             </div>
           );
         })()}
@@ -219,6 +146,7 @@ export default function ProductosPage() {
               <input
                 type="text"
                 placeholder="Buscar..."
+                aria-label="Buscar en el catálogo"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className={styles.searchInput}
@@ -229,6 +157,7 @@ export default function ProductosPage() {
               {brands && brands.length > 0 && (
                 <select
                   className={styles.filterSelect}
+                  aria-label="Marca"
                   value={selectedBrands.length === 1 ? selectedBrands[0] : ""}
                   onChange={(e) => handleBrandChange(e.target.value)}
                 >
@@ -241,6 +170,7 @@ export default function ProductosPage() {
 
               <select
                 className={styles.filterSelect}
+                aria-label="Categoría"
                 value={selectedCategories.length === 1 ? selectedCategories[0] : ""}
                 onChange={(e) => handleCategoryChange(e.target.value)}
               >
@@ -266,6 +196,7 @@ export default function ProductosPage() {
 
               <select
                 className={styles.filterSelect}
+                aria-label="Ordenar productos"
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
               >

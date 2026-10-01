@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import './fonts.css';
 
 /* ============================================================
    CSS VARIABLES (Dynamic Theme)
@@ -642,9 +642,25 @@ ul, ol {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
   .reveal {
     opacity: 1;
     transform: none;
     transition: none;
   }
+}
+
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+@media (max-width: 768px) and (pointer: coarse) {
+  input, select, textarea { font-size: max(16px, 1rem); }
+  .btn { min-height: 44px; }
 }

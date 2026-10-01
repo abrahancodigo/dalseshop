@@ -1,18 +1,11 @@
 "use client";
 import { createContext, useContext, useEffect, useState, useRef } from "react";
-import {
-  signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
-  signOut,
-  onAuthStateChanged,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  updateProfile,
-  sendPasswordResetEmail,
-} from "firebase/auth";
-import { auth, googleProvider, SUPER_ADMIN_EMAIL } from "@/lib/firebase";
-import { getUserByEmail, saveUser } from "@/lib/firestore";
+let servicesPromise;
+function loadAuthServices() {
+  if (!servicesPromise) servicesPromise = import("@/lib/authServices.mjs")
+    .catch((error) => { servicesPromise = null; throw error; });
+  return servicesPromise;
+}
 import { ROLE_PERMISSIONS, hasPermission, canManage } from "@/lib/permissions";
 
 const AuthContext = createContext(null);
@@ -32,6 +25,7 @@ export function AuthProvider({ children }) {
   const isRegisteringRef = useRef(false);
 
   const resolveUser = async (fbUser) => {
+    const { getUserByEmail, saveUser, SUPER_ADMIN_EMAIL } = await loadAuthServices();
     if (fbUser) {
       sessionStorage.removeItem("auth_manual_logout");
       setUser(fbUser);
@@ -106,12 +100,11 @@ export function AuthProvider({ children }) {
     let active = true;
 
     const init = async () => {
+      const { auth, getRedirectResult, onAuthStateChanged } = await loadAuthServices();
+      if (!active) return;
       // 1. Check if we're returning from a Google redirect
       try {
-        const result = await getRedirectResult(auth);
-        if (result) {
-          console.log("Redirect login successful for:", result.user.email);
-        }
+        await getRedirectResult(auth);
       } catch (err) {
         console.error("Redirect login error:", err);
       } finally {
@@ -121,6 +114,7 @@ export function AuthProvider({ children }) {
       }
 
       // 2. Now subscribe to auth state — Firebase has already processed the redirect
+      if (!active) return;
       const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
         if (!active) return;
         if (!isRegisteringRef.current) {
@@ -132,7 +126,7 @@ export function AuthProvider({ children }) {
       unsubscribeRef.current = unsubscribe;
     };
 
-    init();
+    init().catch((error) => { console.error("Error initializing authentication:", error); if (active) { setLoading(false); setRedirecting(false); } });
 
     return () => {
       active = false;
@@ -142,6 +136,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const loginWithGoogle = async () => {
+    const { auth, googleProvider, signInWithPopup, signInWithRedirect } = await loadAuthServices();
     try {
       await signInWithPopup(auth, googleProvider);
     } catch (error) {
@@ -162,6 +157,7 @@ export function AuthProvider({ children }) {
   };
 
   const registerWithEmail = async (email, password, displayName) => {
+    const { auth, createUserWithEmailAndPassword, updateProfile } = await loadAuthServices();
     isRegisteringRef.current = true;
     try {
       const credential = await createUserWithEmailAndPassword(auth, email, password);
@@ -175,14 +171,17 @@ export function AuthProvider({ children }) {
   };
 
   const loginWithEmail = async (email, password) => {
+    const { auth, signInWithEmailAndPassword } = await loadAuthServices();
     await signInWithEmailAndPassword(auth, email, password);
   };
 
   const resetPassword = async (email) => {
+    const { auth, sendPasswordResetEmail } = await loadAuthServices();
     await sendPasswordResetEmail(auth, email);
   };
 
   const logout = async () => {
+    const { auth, signOut } = await loadAuthServices();
     sessionStorage.setItem("auth_manual_logout", "1");
     await signOut(auth);
   };

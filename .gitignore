@@ -62,3 +62,7 @@ vite-blog*.log
 
 # claude
 .claude/
+
+# Browser verification artifacts
+/playwright-report/
+/test-results/

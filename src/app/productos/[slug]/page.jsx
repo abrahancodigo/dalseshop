@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import ProductCard from "@/components/store/ProductCard";
+import StoreImage from "@/components/store/StoreImage";
 import StoreHeader from "@/components/store/Header";
 import StoreFooter from "@/components/store/Footer";
 import { formatPrice } from "@/lib/format";
@@ -154,7 +155,7 @@ const loadProduct = async () => {
                   <div className={styles.mainImageWrapper}>
                     <div className={styles.mainImage} key={selectedImage}>
                       {product.images?.[selectedImage] ? (
-                        <img
+                        <StoreImage sizes="(max-width: 768px) 100vw, 600px" loading="eager" fetchPriority="high"
                           src={product.images[selectedImage]}
                           alt={product.name}
                           onClick={() => openImage(product.images[selectedImage])}
@@ -185,7 +186,7 @@ const loadProduct = async () => {
                           className={`${styles.thumbnail} ${i === selectedImage ? styles.thumbnailActive : ""}`}
                           onClick={() => setSelectedImage(i)}
                         >
-                          <img src={img} alt={`Vista ${i + 1}`} />
+                          <StoreImage src={img} sizes="80px" alt={`Vista ${i + 1}`} />
                         </button>
                       ))}
                     </div>

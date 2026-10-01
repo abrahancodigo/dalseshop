@@ -14,6 +14,7 @@ import {
 } from "react-icons/hi2";
 import styles from "./CartDrawer.module.css";
 import PriceNoticeBanner from "./PriceNoticeBanner";
+import StoreImage from "./StoreImage";
 
 export default function CartDrawer() {
   const {
@@ -87,10 +88,12 @@ export default function CartDrawer() {
               {items.map((item) => (
                 <div key={item.key} className={styles.item}>
                   {item.image && (
-                    <img
+                    <StoreImage sizes="80px"
                       src={item.image}
                       alt={item.name}
                       className={styles.itemImage}
+                      loading="lazy"
+                      decoding="async"
                     />
                   )}
                   <div className={styles.itemInfo}>

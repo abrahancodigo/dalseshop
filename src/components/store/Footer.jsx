@@ -11,6 +11,7 @@ import {
   FaWhatsapp,
 } from "react-icons/fa";
 import styles from "./Footer.module.css";
+import StoreImage from "./StoreImage";
 
 const SOCIAL_ICONS = {
   facebook: FaFacebookF,
@@ -34,7 +35,7 @@ export default function StoreFooter() {
         <div className={styles.column}>
           <div className={styles.brand}>
             {settings.logo ? (
-              <img src={settings.logo} alt={settings.name} className={styles.logo} />
+              <StoreImage src={settings.logo} alt={settings.name} sizes="180px" className={styles.logo} />
             ) : (
               <div className={styles.logoPlaceholder}>
                 {(settings.name || "DS").substring(0, 2).toUpperCase()}

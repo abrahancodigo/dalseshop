@@ -16,7 +16,9 @@ import {
   writeBatch,
   runTransaction
 } from "firebase/firestore";
-import { db } from "./firebase";
+import { db, storefrontDb } from "./firebase";
+import { createQueryCache } from "./queryCache.mjs";
+import { filterProducts, normalizeProductOptions } from "./productFilters.mjs";
 
 // =====================================================
 // SEARCH CACHES — prevents re-downloading entire
@@ -27,12 +29,31 @@ let _customerSearchCache = { data: null, ts: 0 };
 const SEARCH_CACHE_TTL = 60_000; // 60 seconds
 
 // Product list cache — avoid re-reading entire products collection on every action
-let _productsCache = { data: null, ts: 0, key: "" };
-const PRODUCTS_CACHE_TTL = 15_000; // 15 seconds
+const productsCache = createQueryCache({ ttl: 15000, maxEntries: 64 });
+const catalogCache = createQueryCache({ ttl: 60000, maxEntries: 4 });
+
+async function readPublicQuery(queryRef) {
+  const snapshot = await getDocs(queryRef);
+  // An empty local cache is not evidence that the published collection is empty.
+  if (snapshot.empty && snapshot.metadata.fromCache) {
+    throw Object.assign(new Error("No hay datos confirmados disponibles sin conexión."), { code: "unavailable" });
+  }
+  return snapshot;
+}
+
+function readProductCatalog(isActive) {
+  return catalogCache.get(String(isActive), async () => {
+    const constraints = isActive === undefined ? [] : [where("isActive", "==", isActive)];
+    const snapshot = await readPublicQuery(query(collection(storefrontDb, "products"), ...constraints));
+    return snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }))
+      .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+  });
+}
 
 /** Call this after saving/deleting a product so the next search re-fetches */
 export function invalidateProductSearchCache() {
   _productSearchCache = { data: null, ts: 0 };
+  catalogCache.clear();
 }
 /** Call this after saving/deleting a customer so the next search re-fetches */
 export function invalidateCustomerSearchCache() {
@@ -40,13 +61,15 @@ export function invalidateCustomerSearchCache() {
 }
 /** Call this after any product mutation to invalidate the list cache */
 export function invalidateProductsCache() {
-  _productsCache = { data: null, ts: 0, key: "" };
+  productsCache.clear();
+  catalogCache.clear();
+  _productSearchCache = { data: null, ts: 0 };
 }
 
 export async function getBrands() {
   try {
-    const q = query(collection(db, "brands"), orderBy("order", "asc"));
-    const snapshot = await getDocs(q);
+    const q = query(collection(storefrontDb, "brands"), orderBy("order", "asc"));
+    const snapshot = await readPublicQuery(q);
     return snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
@@ -55,15 +78,15 @@ export async function getBrands() {
     // If ordering fails, try without order
     console.warn("Brands orderBy failed, trying without order:", error.message);
     try {
-      const q = query(collection(db, "brands"));
-      const snapshot = await getDocs(q);
+      const q = query(collection(storefrontDb, "brands"));
+      const snapshot = await readPublicQuery(q);
       return snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
     } catch (err2) {
       console.error("Error fetching brands:", err2);
-      return [];
+      throw err2;
     }
   }
 }
@@ -119,8 +142,8 @@ export async function deleteBrand(id) {
 
 export async function getCategories() {
   try {
-    const q = query(collection(db, "categories"), orderBy("order", "asc"));
-    const snapshot = await getDocs(q);
+    const q = query(collection(storefrontDb, "categories"), orderBy("order", "asc"));
+    const snapshot = await readPublicQuery(q);
     return snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
@@ -129,15 +152,15 @@ export async function getCategories() {
     // If ordering fails, try without order
     console.warn("Categories orderBy failed, trying without order:", error.message);
     try {
-      const q = query(collection(db, "categories"));
-      const snapshot = await getDocs(q);
+      const q = query(collection(storefrontDb, "categories"));
+      const snapshot = await readPublicQuery(q);
       return snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
     } catch (err2) {
       console.error("Error fetching categories:", err2);
-      return [];
+      throw err2;
     }
   }
 }
@@ -198,10 +221,8 @@ export async function searchProducts(searchTerm) {
     // Use cache to avoid re-downloading ALL products on every keystroke
     const now = Date.now();
     if (!_productSearchCache.data || now - _productSearchCache.ts > SEARCH_CACHE_TTL) {
-      const q = query(collection(db, "products"), where("isActive", "==", true));
-      const snapshot = await getDocs(q);
       _productSearchCache = {
-        data: snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })),
+        data: await readProductCatalog(true),
         ts: now
       };
     }
@@ -227,44 +248,26 @@ export async function searchProducts(searchTerm) {
     }).slice(0, 8); // Return top 8 results for the preview
   } catch (error) {
     console.error("Error searching products:", error);
-    return [];
+    throw error;
   }
 }
 
-export async function getProducts(options = {}) {
-  const cacheKey = JSON.stringify(options);
-  const now = Date.now();
-  if (_productsCache.data && _productsCache.key === cacheKey && now - _productsCache.ts < PRODUCTS_CACHE_TTL) {
-    return _productsCache.data;
-  }
+export function getProducts(options = {}) {
+  const normalized = normalizeProductOptions(options);
+  return productsCache.get(JSON.stringify(normalized), () => fetchProducts(normalized));
+}
+
+async function fetchProducts(options) {
   try {
     // If productCodes are provided, search by SKU/barcode (client-side since Firestore can't OR across fields)
     if (options.productCodes && options.productCodes.length > 0) {
       const codes = options.productCodes.filter(c => c && c.trim()).map(c => c.trim().toLowerCase());
       if (codes.length > 0) {
-        const q = query(collection(db, "products"), where("isActive", "==", true));
-        const snapshot = await getDocs(q);
-        let products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-        // Filter by codes (match SKU or barcode)
-        products = products.filter(p => {
-          const sku = (p.sku || "").toLowerCase();
-          const barcode = (p.barcode || "").toLowerCase();
-          return codes.some(code => sku === code || barcode === code || sku.includes(code) || barcode.includes(code));
-        });
-
-        // Apply category/brand filters if also specified
-        if (options.category) products = products.filter(p => p.category === options.category);
-        if (options.brand) products = products.filter(p => p.brand === options.brand);
-
-        if (options.limitCount) products = products.slice(0, options.limitCount);
-
-        _productsCache = { data: products, ts: Date.now(), key: cacheKey };
-        return products;
+        return filterProducts(await readProductCatalog(options.isActive ?? true), options);
       }
     }
 
-    let q = collection(db, "products");
+    let q = collection(storefrontDb, "products");
     let constraints = [];
     
     // We only use simple constraints that don't always require a composite index with createdAt
@@ -281,53 +284,23 @@ export async function getProducts(options = {}) {
       ...(limitVal ? [limitVal] : [])
     );
 
-    const snapshot = await getDocs(qFinal);
+    const snapshot = await readPublicQuery(qFinal);
     const result = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    _productsCache = { data: result, ts: Date.now(), key: cacheKey };
     return result;
   } catch (error) {
     // FALLBACK: If query fails (likely missing index), fetch without complex filters and filter in memory
-    if (error.code === 'failed-precondition' || error.message.includes('index')) {
+    if (error.code === 'failed-precondition' || error.message?.includes('index')) {
       console.warn("Products query failed (index missing?), falling back to client-side filtering.");
       try {
-        const q = query(collection(db, "products"), orderBy("createdAt", "desc"), limit(200));
-        const snapshot = await getDocs(q);
-        let products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        
-        if (options.isActive !== undefined) {
-          products = products.filter(p => {
-            const val = p.isActive;
-            return val === options.isActive || String(val) === String(options.isActive);
-          });
-        }
-        if (options.category) {
-          products = products.filter(p => p.category === options.category);
-        }
-        if (options.brand) {
-          products = products.filter(p => p.brand === options.brand);
-        }
-        if (options.productCodes && options.productCodes.length > 0) {
-          const codes = options.productCodes.filter(c => c && c.trim()).map(c => c.trim().toLowerCase());
-          if (codes.length > 0) {
-            products = products.filter(p => {
-              const sku = (p.sku || "").toLowerCase();
-              const barcode = (p.barcode || "").toLowerCase();
-              return codes.some(code => sku === code || barcode === code || sku.includes(code) || barcode.includes(code));
-            });
-          }
-        }
-        if (options.limitCount) {
-          products = products.slice(0, options.limitCount);
-        }
-        _productsCache = { data: products, ts: Date.now(), key: cacheKey };
-        return products;
+        return filterProducts(await readProductCatalog(options.isActive), options);
       } catch (err2) {
         console.error("Critical error in products fallback:", err2);
+        throw err2;
       }
     }
     
     console.error("Error fetching products:", error);
-    return [];
+    throw error;
   }
 }
 
@@ -364,16 +337,21 @@ export function onProductsChange(options = {}, callback) {
   return () => unsub();
 }
 
-export async function getFeaturedProducts(limitCount = 4) {
+export function getFeaturedProducts(limitCount = 4) {
+  const count = Math.max(1, Math.floor(Number(limitCount) || 4));
+  return productsCache.get(`featured:${count}`, () => fetchFeaturedProducts(count));
+}
+
+async function fetchFeaturedProducts(limitCount) {
   try {
     const q = query(
-      collection(db, "products"),
+      collection(storefrontDb, "products"),
       where("isActive", "==", true),
       where("isFeatured", "==", true),
       orderBy("createdAt", "desc"),
       limit(limitCount)
     );
-    const snapshot = await getDocs(q);
+    const snapshot = await readPublicQuery(q);
     const featured = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
     if (featured.length > 0) return featured;
   } catch (error) {
@@ -387,7 +365,7 @@ export async function getFeaturedProducts(limitCount = 4) {
 
 export async function getProductById(id) {
   try {
-    const docRef = doc(db, "products", id);
+    const docRef = doc(storefrontDb, "products", id);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
       return { id: docSnap.id, ...docSnap.data() };
@@ -401,7 +379,7 @@ export async function getProductById(id) {
 
 export async function getProductBySlug(slug) {
   try {
-    const q = query(collection(db, "products"), where("slug", "==", slug));
+    const q = query(collection(storefrontDb, "products"), where("slug", "==", slug));
     const snapshot = await getDocs(q);
     if (snapshot.empty) return null;
     const doc = snapshot.docs[0];
@@ -548,7 +526,7 @@ export async function saveReview(id, data) {
 export async function getRelatedProducts(categoryId, excludeProductId) {
   try {
     const q = query(
-      collection(db, "products"),
+      collection(storefrontDb, "products"),
       where("category", "==", categoryId),
       where("isActive", "==", true),
       limit(20)
@@ -843,11 +821,11 @@ export function onPagesChange(callback) {
 export async function getHomePage() {
   try {
     const q = query(
-      collection(db, "pages"),
+      collection(storefrontDb, "pages"),
       where("isHomePage", "==", true),
       where("isPublished", "==", true)
     );
-    const snapshot = await getDocs(q);
+    const snapshot = await readPublicQuery(q);
     if (snapshot.empty) return null;
 
     // If multiple, pick the most recently updated one
@@ -861,7 +839,7 @@ export async function getHomePage() {
     })[0];
   } catch (error) {
     console.error("Error fetching homepage:", error);
-    return null;
+    throw error;
   }
 }
 
@@ -869,7 +847,7 @@ export async function getHomePage() {
 export async function getMenuPages() {
   try {
     const q = query(
-      collection(db, "pages"),
+      collection(storefrontDb, "pages"),
       where("isPublished", "==", true),
       where("showInMenu", "==", true)
     );
@@ -878,7 +856,7 @@ export async function getMenuPages() {
   } catch (error) {
     console.warn(" getMenuPages query failed, trying fallback:", error.message);
     try {
-      const q = query(collection(db, "pages"), where("isPublished", "==", true));
+      const q = query(collection(storefrontDb, "pages"), where("isPublished", "==", true));
       const snapshot = await getDocs(q);
       return snapshot.docs
         .map(doc => ({ id: doc.id, ...doc.data() }))
@@ -894,7 +872,7 @@ export async function getMenuPages() {
 export async function getPublishedPageBySlug(slug) {
   try {
     const q = query(
-      collection(db, "pages"),
+      collection(storefrontDb, "pages"),
       where("slug", "==", slug),
       where("isPublished", "==", true)
     );
@@ -906,7 +884,7 @@ export async function getPublishedPageBySlug(slug) {
     // Fallback: try without isPublished filter in case the field uses string booleans
     console.warn("getPublishedPageBySlug failed, trying simple slug query:", error.message);
     try {
-      const q = query(collection(db, "pages"), where("slug", "==", slug));
+      const q = query(collection(storefrontDb, "pages"), where("slug", "==", slug));
       const snapshot = await getDocs(q);
       if (snapshot.empty) return null;
       const d = snapshot.docs[0];
@@ -945,7 +923,7 @@ export async function saveShippingConfig(data) {
 
 export async function getStoreTheme() {
   try {
-    const docRef = doc(db, "config", "theme");
+    const docRef = doc(storefrontDb, "config", "theme");
     const docSnap = await getDoc(docRef);
     return docSnap.exists() ? docSnap.data() : {};
   } catch (error) {
@@ -968,7 +946,7 @@ export async function saveStoreTheme(data) {
 
 export async function getStoreNavigation() {
   try {
-    const docRef = doc(db, "config", "navigation");
+    const docRef = doc(storefrontDb, "config", "navigation");
     const docSnap = await getDoc(docRef);
     return docSnap.exists() ? docSnap.data() : {};
   } catch (error) {
@@ -991,7 +969,7 @@ export async function saveStoreNavigation(data) {
 
 export async function getStoreFeatures() {
   try {
-    const docRef = doc(db, "config", "features");
+    const docRef = doc(storefrontDb, "config", "features");
     const docSnap = await getDoc(docRef);
     return docSnap.exists() ? docSnap.data() : {};
   } catch (error) {
@@ -1085,7 +1063,7 @@ export async function saveCustomer(data) {
 
 export async function getStoreSettings() {
   try {
-    const docRef = doc(db, "config", "settings");
+    const docRef = doc(storefrontDb, "config", "settings");
     const docSnap = await getDoc(docRef);
     return docSnap.exists() ? docSnap.data() : {};
   } catch (error) {

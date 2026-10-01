@@ -1,31 +1,28 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useMemo, useCallback } from "react";
 
 const CartContext = createContext(null);
 
 export function CartProvider({ children }) {
-  const [items, setItems] = useState([]);
+  const [items, setItems] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('dalseshop_cart') || '[]');
+      return Array.isArray(saved) ? saved.filter((item) => item && typeof item.productId === 'string'
+        && typeof item.key === 'string' && Number.isSafeInteger(item.quantity) && item.quantity > 0
+        && Number.isFinite(item.price) && item.price >= 0) : [];
+    } catch { return []; }
+  });
   const [isOpen, setIsOpen] = useState(false);
-
-  // Load cart from localStorage on mount
-  useEffect(() => {
-    const saved = localStorage.getItem("dalseshop_cart");
-    if (saved) {
-      try {
-        setItems(JSON.parse(saved));
-      } catch (e) {
-        console.error("Error loading cart:", e);
-      }
-    }
-  }, []);
 
   // Save cart to localStorage on change
   useEffect(() => {
-    localStorage.setItem("dalseshop_cart", JSON.stringify(items));
+    try { localStorage.setItem("dalseshop_cart", JSON.stringify(items)); }
+    catch (error) { console.warn('No se pudo guardar el carrito en este navegador.', error); }
   }, [items]);
 
-  const addItem = (product, quantity = 1, variant = null) => {
+  const addItem = useCallback((product, quantity = 1, variant = null) => {
+    if (!Number.isSafeInteger(quantity) || quantity <= 0) return;
     setItems((prev) => {
       const key = variant ? `${product.id}_${variant}` : product.id;
       const existingIndex = prev.findIndex((item) => item.key === key);
@@ -54,46 +51,53 @@ export function CartProvider({ children }) {
         },
       ];
     });
-  };
+  }, []);
 
-  const removeItem = (key) => {
+  const removeItem = useCallback((key) => {
     setItems((prev) => prev.filter((item) => item.key !== key));
-  };
+  }, []);
 
-  const updateQuantity = (key, quantity) => {
+  const updateQuantity = useCallback((key, quantity) => {
+    if (!Number.isSafeInteger(quantity)) return;
     if (quantity <= 0) {
-      removeItem(key);
+      setItems((prev) => prev.filter((item) => item.key !== key));
       return;
     }
     setItems((prev) =>
       prev.map((item) => (item.key === key ? { ...item, quantity } : item))
     );
-  };
+  }, []);
 
-  const clearCart = () => {
+  const clearCart = useCallback(() => {
     setItems([]);
-  };
+  }, []);
 
-  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
-  const totalPrice = items.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
+  const totalItems = useMemo(
+    () => items.reduce((sum, item) => sum + item.quantity, 0),
+    [items]
+  );
+  const totalPrice = useMemo(
+    () => items.reduce((sum, item) => sum + item.price * item.quantity, 0),
+    [items]
+  );
+
+  const value = useMemo(
+    () => ({
+      items,
+      isOpen,
+      setIsOpen,
+      addItem,
+      removeItem,
+      updateQuantity,
+      clearCart,
+      totalItems,
+      totalPrice,
+    }),
+    [items, isOpen, addItem, removeItem, updateQuantity, clearCart, totalItems, totalPrice]
   );
 
   return (
-    <CartContext.Provider
-      value={{
-        items,
-        isOpen,
-        setIsOpen,
-        addItem,
-        removeItem,
-        updateQuantity,
-        clearCart,
-        totalItems,
-        totalPrice,
-      }}
-    >
+    <CartContext.Provider value={value}>
       {children}
     </CartContext.Provider>
   );

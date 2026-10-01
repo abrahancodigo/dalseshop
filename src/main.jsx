@@ -1,7 +1,8 @@
-import { Component, useEffect } from 'react'
+import { Component } from 'react'
 import ReactDOM from 'react-dom/client'
-import { BrowserRouter, useLocation } from 'react-router-dom'
+import { BrowserRouter } from 'react-router-dom'
 import AppRouter from '@/router'
+import ScrollRestoration from '@/components/ScrollRestoration'
 import Providers from '@/components/Providers'
 import '@/app/globals.css'
 
@@ -18,9 +19,10 @@ class ErrorBoundary extends Component {
     if (this.state.error) {
       return (
         <div style={{ padding: 40, fontFamily: 'monospace', color: 'red', background: '#fff' }}>
-          <h1>Error: {this.state.error.message}</h1>
-          <pre style={{ whiteSpace: 'pre-wrap', fontSize: 12 }}>{this.state.error.stack}</pre>
-          {this.state.errorInfo && (
+          <h1>No pudimos mostrar esta página.</h1>
+          <button onClick={() => window.location.reload()}>Volver a intentar</button>
+          {import.meta.env.DEV && <pre style={{ whiteSpace: 'pre-wrap', fontSize: 12 }}>{this.state.error.stack}</pre>}
+          {import.meta.env.DEV && this.state.errorInfo && (
             <pre style={{ whiteSpace: 'pre-wrap', fontSize: 11, marginTop: 20, color: '#666' }}>
               {this.state.errorInfo.componentStack}
             </pre>
@@ -32,17 +34,11 @@ class ErrorBoundary extends Component {
   }
 }
 
-function ScrollToTop() {
-  const { pathname } = useLocation()
-  useEffect(() => { window.scrollTo(0, 0) }, [pathname])
-  return null
-}
-
 const root = ReactDOM.createRoot(document.getElementById('root'))
 root.render(
   <ErrorBoundary>
     <BrowserRouter>
-      <ScrollToTop />
+      <ScrollRestoration />
       <Providers>
         <AppRouter />
       </Providers>

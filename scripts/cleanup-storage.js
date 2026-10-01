@@ -250,6 +250,7 @@ async function getAllStorageFiles() {
 }
 
 async function main() {
+  const { isReferencedVariant } = await import('../src/lib/responsiveImage.mjs');
   console.log("🧹 Firebase Storage Cleanup Script");
   console.log("===================================");
   if (DRY_RUN) {
@@ -264,7 +265,7 @@ async function main() {
 
   for (const file of storageFiles) {
     // Check if this file's path or URL is referenced
-    if (!referencedPaths.has(file.name) && !referencedUrls.has(file.url)) {
+    if (!referencedPaths.has(file.name) && !referencedUrls.has(file.url) && !isReferencedVariant(file.name, referencedPaths)) {
       orphanedFiles.push(file);
     }
   }

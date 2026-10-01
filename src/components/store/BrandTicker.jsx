@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useStore } from "@/context/StoreContext";
 import styles from "./BrandTicker.module.css";
+import StoreImage from "./StoreImage";
 
 export default function BrandTicker() {
   const { brands } = useStore();
@@ -56,7 +57,7 @@ export default function BrandTicker() {
             onClick={handleItemClick}
           >
             {brand.logo ? (
-              <img src={brand.logo} alt={brand.name} className={styles.logo} />
+              <StoreImage src={brand.logo} alt={brand.name} sizes="(max-width: 768px) 110px, 180px" className={styles.logo} draggable={false} />
             ) : (
               <span className={styles.name}>{brand.name}</span>
             )}

@@ -58,3 +58,10 @@
   color: var(--color-text);
   white-space: nowrap;
 }
+
+@media (max-width: 768px) {
+  .ticker { padding: 0.5rem 0; overscroll-behavior-x: contain; }
+  .track { gap: 1.5rem; padding: 0 1rem; }
+  .logo { height: 40px; max-width: 120px; }
+  .item { min-height: 44px; }
+}

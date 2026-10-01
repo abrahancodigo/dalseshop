@@ -1,0 +1,96 @@
+{
+  "environment": {
+    "browser": "153.0.8010.12",
+    "device": "Pixel 7 emulation",
+    "latencyMs": 150,
+    "downloadBytesPerSecond": 200000,
+    "cpuSlowdown": 4,
+    "compression": "gzip",
+    "coldCache": true,
+    "runsPerBuild": 3,
+    "note": "Local laboratory measurements, not a physical phone or field/Lighthouse results."
+  },
+  "builds": [
+    {
+      "name": "before",
+      "initialJavaScript": {
+        "files": [
+          "/assets/index-Baj8FwB7.js",
+          "/assets/react-vendor-VzCF3QXo.js",
+          "/assets/firebase-COwzIhBa.js"
+        ],
+        "bytes": 1059344,
+        "gzipBytes": 272528
+      },
+      "runs": [
+        {
+          "run": 1,
+          "heroReadyMs": 20244.70000001788,
+          "lcp": 20160,
+          "cls": 0,
+          "fcp": 18900,
+          "horizontalOverflow": false,
+          "errors": []
+        },
+        {
+          "run": 2,
+          "heroReadyMs": 14094.799999982119,
+          "lcp": 14176,
+          "cls": 0,
+          "fcp": 12716,
+          "horizontalOverflow": false,
+          "errors": []
+        },
+        {
+          "run": 3,
+          "heroReadyMs": 14470.5,
+          "lcp": 14504,
+          "cls": 0,
+          "fcp": 13132,
+          "horizontalOverflow": false,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "name": "after",
+      "initialJavaScript": {
+        "files": [
+          "/assets/index-CPjjNtwN.js",
+          "/assets/react-vendor-B_4ZSgIx.js"
+        ],
+        "bytes": 515147,
+        "gzipBytes": 146025
+      },
+      "runs": [
+        {
+          "run": 1,
+          "heroReadyMs": 5873.799999982119,
+          "lcp": 4080,
+          "cls": 0,
+          "fcp": 3628,
+          "horizontalOverflow": false,
+          "errors": []
+        },
+        {
+          "run": 2,
+          "heroReadyMs": 11702.59999999404,
+          "lcp": 8952,
+          "cls": 0,
+          "fcp": 8768,
+          "horizontalOverflow": false,
+          "errors": []
+        },
+        {
+          "run": 3,
+          "heroReadyMs": 5819.200000017881,
+          "lcp": 4524,
+          "cls": 0,
+          "fcp": 4192,
+          "horizontalOverflow": false,
+          "errors": []
+        }
+      ]
+    }
+  ]
+}
