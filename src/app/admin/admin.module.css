@@ -25,6 +25,31 @@
   animation: fadeIn 0.3s ease;
 }
 
+/* ── MÓVIL: scroll vertical propio, sin doble 100vh ── */
+@media (max-width: 768px) {
+  .adminLayout {
+    height: 100vh; /* fallback para navegadores sin dvh */
+    height: 100dvh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+
+  .mainContent {
+    min-height: 0;
+    overflow-y: visible;
+  }
+
+  .contentWrapper {
+    min-height: 0;
+  }
+
+  .pageContent {
+    overflow-y: visible;
+    padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+  }
+}
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }

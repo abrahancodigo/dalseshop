@@ -18,10 +18,13 @@ import {
   HiOutlineMagnifyingGlass 
 } from "react-icons/hi2";
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useBackToClose } from "@/hooks/useBackToClose";
+import { lockScroll, unlockScroll } from "@/lib/scrollLock";
 import { useAuth } from "@/context/AuthContext";
 import { getMenuPages } from "@/lib/firestore";
 import styles from "./Header.module.css";
 import SearchBar from "./SearchBar";
+import SearchModal from "./SearchModal";
 import BrandTicker from "./BrandTicker";
 
 export function AuthButtons() {
@@ -112,16 +115,24 @@ export default function StoreHeader() {
     }
   }, [searchModalOpen]);
 
+  useBackToClose(menuOpen, () => setMenuOpen(false));
+
+  // Bloquear el scroll del documento mientras el drawer de navegación está abierto.
+  useEffect(() => {
+    if (menuOpen) {
+      lockScroll();
+      return () => unlockScroll();
+    }
+  }, [menuOpen]);
+
   useEffect(() => {
     if (searchModalOpen) {
       document.addEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
+      lockScroll();
     }
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = '';
+      unlockScroll();
     };
   }, [searchModalOpen, handleKeyDown]);
 
@@ -247,15 +258,7 @@ export default function StoreHeader() {
         </div>
 
         {searchModalOpen && (
-          <div className={styles.searchModalOverlay} onClick={() => setSearchModalOpen(false)}>
-            <div className={styles.searchModalContent} onClick={(e) => e.stopPropagation()}>
-              <button className={styles.searchModalClose} onClick={() => setSearchModalOpen(false)} aria-label="Cerrar búsqueda">
-                <HiOutlineXMark size={22} />
-                <span>Cerrar</span>
-              </button>
-              <SearchBar onResultClick={() => setSearchModalOpen(false)} autoFocus />
-            </div>
-          </div>
+          <SearchModal onClose={() => setSearchModalOpen(false)} autoFocus />
         )}
 
         {menuOpen && <div className={styles.overlay} onClick={() => setMenuOpen(false)} />}

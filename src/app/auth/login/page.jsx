@@ -29,6 +29,12 @@ export default function LoginPage() {
     }
   }, [user, isAdmin, loading, redirecting, navigate, location.state?.from]);
 
+  // Sin MobileTabBar en login → quitar padding-bottom del body
+  useEffect(() => {
+    document.body.setAttribute('data-no-tabbar', '');
+    return () => document.body.removeAttribute('data-no-tabbar');
+  }, []);
+
   const resetForm = () => {
     setError("");
     setEmail("");

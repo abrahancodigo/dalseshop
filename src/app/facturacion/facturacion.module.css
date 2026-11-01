@@ -10,6 +10,25 @@
   background: var(--color-surface);
 }
 
+/* ── MÓVIL: scroll vertical propio, sin doble 100vh ── */
+@media (max-width: 768px) {
+  .page {
+    min-height: 0;
+    height: 100vh; /* fallback para navegadores sin dvh */
+    height: 100dvh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+
+  .main {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: visible;
+    padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
 .container {
   max-width: 900px;
 }

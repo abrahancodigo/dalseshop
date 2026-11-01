@@ -1,11 +1,24 @@
 "use client";
 
+import { useEffect } from "react";
+import { useBackToClose } from "@/hooks/useBackToClose";
 import { useImage } from "@/context/ImageContext";
+import { lockScroll, unlockScroll } from "@/lib/scrollLock";
 import { HiOutlineXMark } from "react-icons/hi2";
 import styles from "./ModalImage.module.css";
 
 export default function ModalImage() {
   const { imageSrc, closeImage } = useImage();
+
+  useBackToClose(!!imageSrc, closeImage);
+
+  // Bloquear/relajar el scroll del documento mientras el modal está abierto.
+  useEffect(() => {
+    if (imageSrc) {
+      lockScroll();
+      return () => unlockScroll();
+    }
+  }, [imageSrc]);
 
   if (!imageSrc) return null;
 
@@ -15,10 +28,10 @@ export default function ModalImage() {
         <button className={styles.closeBtn} onClick={closeImage} aria-label="Cerrar">
           <HiOutlineXMark size={24} />
         </button>
-        
-        <img 
-          src={imageSrc} 
-          alt="Imagen full-size" 
+
+        <img
+          src={imageSrc}
+          alt="Imagen full-size"
           className={styles.image}
           onClick={closeImage}
         />

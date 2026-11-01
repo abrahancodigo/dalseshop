@@ -1,0 +1,137 @@
+/* ============================================================
+   Barra de pestañas inferior (solo móvil)
+   Patrón nativo: navegación fija al alcance del pulgar.
+   ============================================================ */
+
+.tabBar {
+  display: none;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 120;
+
+  /* El alto fijo de 56px es lo mínimo. Si el safe-area (iPhone con home-indicator)
+     es mayor, queremos amenú la altura dinámicamente. Usamos min-height (no height)
+     para que contenido adicional se pueda añadir sin que se quité. */
+  min-height: var(--tabbar-h, calc(56px + env(safe-area-inset-bottom, 0px)));
+
+  /* Padding que GUARDA espacio para el safe-area: el slider/indicator del iOS
+     por debajo no tapa el botón "Cuenta" ni el badge. */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+@media (max-width: 768px) {
+  .tabBar {
+    display: flex;
+    align-items: stretch;
+
+    background: rgba(255, 255, 255, 0.86);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+    border-top: 1px solid rgba(15, 23, 42, 0.08);
+    box-shadow: 0 -1px 0 rgba(15, 23, 42, 0.04);
+
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .tab {
+    flex: 1 1 0;
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+
+    /* Objetivo táctil cómodo (>= 48px de alto). */
+    min-height: 52px;
+    padding: 6px 4px 4px;
+
+    background: none;
+    border: none;
+    text-decoration: none;
+    cursor: pointer;
+    color: var(--color-muted, #64748b);
+
+    transition: color 150ms ease, transform 150ms ease;
+  }
+
+  .tab:active {
+    transform: scale(0.94);
+  }
+
+  .icon {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+  }
+
+  .label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  /* Sección activa: color de marca + punto indicador. */
+  .tabActive {
+    color: var(--color-primary);
+  }
+
+  .tabActive .icon {
+    transform: translateY(-1px);
+  }
+
+  .tabActive .label {
+    font-weight: 700;
+  }
+
+  /* Contador del carrito sobre el icono. */
+  .cartWrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .badge {
+    position: absolute;
+    top: -6px;
+    right: -10px;
+
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 999px;
+    background: var(--color-primary);
+    color: var(--color-primary-text, #fff);
+    border: 2px solid #fff;
+
+    font-size: 0.625rem;
+    font-weight: 800;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* En pantallas muy estrechas se oculta la etiqueta y queda solo el icono. */
+@media (max-width: 340px) {
+  .label {
+    display: none;
+  }
+}

@@ -2,9 +2,22 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- viewport-fit=cover: permite pintar bajo el notch y la barra de gestos.
+         maximum-scale se omite a propósito para no romper el zoom por accesibilidad. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
     <title>DalseShop</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+
+    <!-- PWA: permite instalar la tienda como app y abrirla sin barra de navegador. -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#0D1B2A" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="DalseShop" />
+    <meta name="format-detection" content="telephone=no" />
   </head>
   <body>
     <div id="root"></div>

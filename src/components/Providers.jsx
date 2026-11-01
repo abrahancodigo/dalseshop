@@ -5,6 +5,7 @@ import { StoreProvider } from "@/context/StoreContext";
 import { CartProvider } from "@/context/CartContext";
 import { ImageProvider } from "@/context/ImageContext";
 import CartDrawer from "@/components/store/CartDrawer";
+import MobileTabBar from "@/components/store/MobileTabBar";
 import ModalImage from "./ModalImage";
 import CookieConsent from "@/components/store/CookieConsent";
 
@@ -15,6 +16,7 @@ export default function Providers({ children }) {
         <StoreProvider>
           <CartProvider>
             {children}
+            <MobileTabBar />
             <CartDrawer />
             <ModalImage />
             <CookieConsent />

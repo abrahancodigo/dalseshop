@@ -72,9 +72,17 @@
 }
 
 html {
-  scroll-behavior: smooth;
+  /* scroll-behavior: auto (el default) — NO smooth, para que el
+     `window.scrollTo({behavior:'instant'})` en main.jsx no se vea
+     animado. */
+  scroll-behavior: auto;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* `overflow-y: auto` explícito: el document es el único scrollable que
+     tiene la app. Si `body` tiene `overflow-x:hidden` solo, el browser
+     (especialmente mobile) asume que el html no tiene scroll vertical
+     y "se puede" la página sin scroll. Lo forzo explícito. */
+  overflow-y: auto;
   overflow-x: hidden;
 }
 
@@ -83,8 +91,12 @@ body {
   color: var(--color-text);
   background-color: var(--color-background);
   line-height: 1.6;
-  min-height: 100vh;
-  overflow-x: hidden;
+
+  /* `min-height: 100dvh` basta: NO ponemos `height: 100dvh` con
+     `overflow-y: auto` porque eso crea un contenedor oscuro que hace que
+     `window.scrollTo` (main.jsx) no pueda controlar el scroll del body —
+     la página cargaría desde arrib pero NO se scrollearía. */
+  min-height: 100dvh;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -343,6 +355,7 @@ ul, ol {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
+  min-height: 100dvh;
   gap: 1rem;
 }
 
@@ -646,5 +659,84 @@ ul, ol {
     opacity: 1;
     transform: none;
     transition: none;
+  }
+}
+
+/* ============================================================
+   MÓVIL NATIVO
+   Capa que hace que la web se comporte como una app instalada:
+   sin rebote elástico, sin zoom accidental, sin selección de
+   texto al tocar, con safe-areas y con sheets anclados al pulgar.
+   Todo va dentro de media query: el escritorio no cambia.
+   ============================================================ */
+
+@media (max-width: 768px) {
+  html {
+    /* Evita el zoom involuntario al girar el dispositivo. */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  :root {
+    /* Calcio real del alto de la barra inferior (56px táctil + safe-area). */
+    --tabbar-h: calc(56px + env(safe-area-inset-bottom, 0px));
+  }
+
+  body {
+    /* Quita el destello azul al tocar enlaces y botones. */
+    -webkit-tap-highlight-color: transparent;
+
+    /* Sin rebote elástico: el scroll se siente contenido, como en nativo. */
+    overscroll-behavior-y: none;
+
+    /* Deja sitio a la barra de pestañas inferior + gestos del sistema. */
+    padding-bottom: var(--tabbar-h);
+  }
+
+  /* El admin y el login no llevan barra inferior: recuperan el alto completo. */
+  body[data-no-tabbar],
+  body:has([data-no-tabbar]) {
+    padding-bottom: 0;
+  }
+
+  /* Los controles no deben seleccionar texto al mantener pulsado. */
+  button,
+  a,
+  [role="button"] {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  /* iOS hace zoom si el input tiene menos de 16px al enfocarlo. */
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  /* Contenedores con scroll propio: sin rebote hacia la página. */
+  .container {
+    padding-left: max(1rem, env(safe-area-inset-left, 0px));
+    padding-right: max(1rem, env(safe-area-inset-right, 0px));
+  }
+}
+
+/* Instalada como app (standalone): más alto útil, sin barra del navegador. */
+@media (display-mode: standalone) {
+  body {
+    overscroll-behavior-y: none;
+  }
+}
+
+/* Respeta a quien pide menos movimiento también en las transiciones móviles. */
+@media (max-width: 768px) and (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

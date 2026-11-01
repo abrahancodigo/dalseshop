@@ -75,7 +75,7 @@ export default function AdminLayout() {
   if (!user || !isAdmin) return null;
 
   return (
-    <div className={styles.adminLayout} data-admin-theme={theme}>
+    <div className={styles.adminLayout} data-admin-theme={theme} data-no-tabbar>
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <main className={styles.mainContent}>
         <div className={styles.contentWrapper}>

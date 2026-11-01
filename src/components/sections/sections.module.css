@@ -278,6 +278,24 @@
   .heroTitle { font-size: 1.75rem; }
   .coverflowContainer { height: 350px; }
   .heroThumb { width: 52px; height: 34px; }
+  
+  /* Mobile arrow adjustments for touch devices */
+  .heroArrow {
+    width: 40px;
+    height: 40px;
+    opacity: 0.8;
+    background: rgba(255,255,255,0.9);
+  }
+  
+  .heroArrowPrev { left: 0.5rem; }
+  .heroArrowNext { right: 0.5rem; }
+  
+  .heroArrow:hover,
+  .heroArrow:active {
+    opacity: 1;
+    transform: translateY(-50%) scale(1.05);
+  }
+
   .heroThumbs { gap: 0.35rem; }
   .heroCounter { bottom: 3.5rem; font-size: 0.75rem; padding: 0.2rem 0.65rem; }
 }

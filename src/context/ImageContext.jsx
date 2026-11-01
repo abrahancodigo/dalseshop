@@ -1,20 +1,21 @@
 "use client";
 
 import { createContext, useContext, useState } from "react";
+import { lockScroll, unlockScroll } from "@/lib/scrollLock";
 
 const ImageContext = createContext(null);
 
 export function ImageProvider({ children }) {
   const [imageSrc, setImageSrc] = useState(null);
-  
+
   const openImage = (src) => {
     setImageSrc(src);
-    document.body.style.overflow = "hidden"; // Prevenir scroll
+    lockScroll(); // Prevenir scroll mientras el modal está abierto
   };
-  
+
   const closeImage = () => {
     setImageSrc(null);
-    document.body.style.overflow = "";
+    unlockScroll();
   };
 
   return (

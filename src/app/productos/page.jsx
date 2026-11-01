@@ -21,7 +21,7 @@ export default function ProductosPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(() => searchParams.get("search") || "");
   const [selectedCategories, setSelectedCategories] = useState(
     () => {
       const catParam = searchParams.get("categoria");
@@ -85,6 +85,16 @@ export default function ProductosPage() {
     if (brandParam !== prevMarcaRef.current) {
       prevMarcaRef.current = brandParam;
       setSelectedBrands(brandParam ? [brandParam] : []);
+    }
+  }, [searchParams]);
+
+  // Sync URL → search state when the search param is updated (e.g. from SearchModal)
+  const prevSearchRef = useRef(searchParams.get("search"));
+  useEffect(() => {
+    const searchParam = searchParams.get("search") || "";
+    if (searchParam !== prevSearchRef.current) {
+      prevSearchRef.current = searchParam;
+      setSearch(searchParam);
     }
   }, [searchParams]);
 

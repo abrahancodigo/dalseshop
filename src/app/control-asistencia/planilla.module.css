@@ -6,6 +6,11 @@
 /* LAYOUT */
 .layout{display:flex;min-height:calc(100vh - 68px);background:#F0F2F5}
 
+/* MÓVIL: el alto lo marca el documento, no un 100vh anidado */
+@media(max-width:768px){
+.layout{min-height:0}
+}
+
 /* SIDEBAR */
 .sidebar{width:220px;background:linear-gradient(180deg,#0F172A 0%,#1E293B 100%);display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:68px;height:calc(100vh - 68px);overflow-y:auto;z-index:10;border-right:1px solid rgba(255,255,255,0.04)}
 .sidebarHeader{padding:1.25rem 1.15rem 0.85rem;border-bottom:1px solid rgba(255,255,255,0.06)}
@@ -331,7 +336,7 @@
 .sidebar{display:none}
 .topBar{flex-wrap:wrap;padding:0.5rem 1rem}
 .kpiStrip{grid-template-columns:1fr 1fr}
-.contentArea{padding:0.5rem 0.75rem}
+.contentArea{padding:0.5rem 0.75rem;padding-bottom:calc(56px + env(safe-area-inset-bottom,0px))}
 .periodsGrid{grid-template-columns:1fr}
 .calendarGrid{font-size:0.65rem}
 .loansKpiRow{grid-template-columns:1fr 1fr}

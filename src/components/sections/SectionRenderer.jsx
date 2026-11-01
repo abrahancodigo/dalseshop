@@ -7,6 +7,7 @@ import { useCart } from "@/context/CartContext";
 import { useImage } from "@/context/ImageContext";
 import ProductCard from "@/components/store/ProductCard";
 import { sanitizeHtml } from "@/lib/sanitize";
+import { lockScroll, unlockScroll } from "@/lib/scrollLock";
 import { isYouTubeUrl, extractYouTubeId, getYouTubeEmbedUrl } from "@/lib/videoUtils";
 import VideoPlayer from "./VideoPlayer";
 import styles from "./sections.module.css";
@@ -187,6 +188,47 @@ function HeroSection({ config }) {
   const goNextRef = useRef(goNext);
   goNextRef.current = goNext;
 
+  // --- Touch / Swipe support for mobile ---
+  const touchStartX = useRef(null);
+  const touchStartY = useRef(null);
+  const isSwiping = useRef(false);
+
+  const handleTouchStart = useCallback((e) => {
+    if (!hasMultipleSlides) return;
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    isSwiping.current = false;
+  }, [hasMultipleSlides]);
+
+  const handleTouchMove = useCallback((e) => {
+    if (touchStartX.current === null || !hasMultipleSlides) return;
+    const deltaX = e.touches[0].clientX - touchStartX.current;
+    const deltaY = e.touches[0].clientY - touchStartY.current;
+    // If horizontal movement dominates, mark as swipe to prevent scroll hijack later
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
+      isSwiping.current = true;
+    }
+  }, [hasMultipleSlides]);
+
+  const handleTouchEnd = useCallback((e) => {
+    if (touchStartX.current === null || !hasMultipleSlides) return;
+    const endX = e.changedTouches[0].clientX;
+    const diff = touchStartX.current - endX;
+    
+    // Threshold of 50px to trigger slide change
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) {
+        goNext(); // Swipe left -> next
+      } else {
+        goPrev(); // Swipe right -> prev
+      }
+    }
+    
+    touchStartX.current = null;
+    touchStartY.current = null;
+    isSwiping.current = false;
+  }, [hasMultipleSlides, goNext, goPrev]);
+
   useEffect(() => {
     if (!hasMultipleSlides) return;
     timeoutRef.current = setInterval(() => goNextRef.current(), autoplaySpeed);
@@ -235,10 +277,10 @@ function HeroSection({ config }) {
       if (e.key === "ArrowRight") modalNext();
     };
     document.addEventListener("keydown", handleKey);
-    document.body.style.overflow = "hidden";
+    lockScroll();
     return () => {
       document.removeEventListener("keydown", handleKey);
-      document.body.style.overflow = "";
+      unlockScroll();
     };
   }, [modalIndex, closeModal, modalPrev, modalNext]);
 
@@ -395,6 +437,9 @@ function HeroSection({ config }) {
       style={{ minHeight: `${config.height || 500}px`, perspective: "1200px" }}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
       <div className={styles.coverflowContainer}>
         {slides.map((slide, index) => (

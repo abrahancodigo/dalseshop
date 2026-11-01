@@ -17,6 +17,17 @@
   background: #F0F2F5;
 }
 
+/* ===== MÓVIL: el alto lo marca el documento, no un 100vh anidado ===== */
+@media (max-width: 768px) {
+  .layout {
+    min-height: 0;
+  }
+
+  .sidebar {
+    height: auto;
+  }
+}
+
 /* ===== LEFT SIDEBAR ===== */
 .sidebar {
   width: 220px;

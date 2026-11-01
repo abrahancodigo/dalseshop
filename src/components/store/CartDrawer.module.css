@@ -2,7 +2,7 @@
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
-  z-index: 999;
+  z-index: 130;
   animation: fadeIn 0.2s ease;
   -webkit-tap-highlight-color: transparent;
 }
@@ -29,7 +29,7 @@
   width: 420px;
   max-width: 100vw;
   background: white;
-  z-index: 1000;
+  z-index: 140;
   display: flex;
   flex-direction: column;
   animation: slideIn 0.3s ease;
@@ -294,6 +294,88 @@
 .checkoutBtn:hover {
   opacity: 0.9;
   transform: translateY(-1px);
+}
+
+/* ============================================================
+   Móvil: el carrito deja de ser un panel lateral y pasa a ser
+   un bottom sheet, el patrón de las apps de compra nativas.
+   ============================================================ */
+@media (max-width: 768px) {
+  .drawer {
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-width: 100%;
+
+    /* El sheet llega al fondo de la pantalla. El footer ya respeta safe-area. */
+    max-height: 100dvh;
+    height: 100dvh;
+
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -12px 40px rgba(15, 23, 42, 0.22);
+
+    /* En bottom sheet NO compensamos safe-area con padding: el footer lo
+       hace cuando sabe exacto dnde va a tocar el usuario. */
+    padding-bottom: 0;
+
+    animation: sheetUp 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .drawer.closing {
+    animation: sheetDown 0.26s cubic-bezier(0.4, 0, 1, 1) forwards;
+  }
+
+  @keyframes sheetUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  @keyframes sheetDown {
+    from { transform: translateY(0); }
+    to { transform: translateY(100%); }
+  }
+
+  /* Asa de arrastre: la señal visual de "esto se puede cerrar". */
+  .header {
+    position: relative;
+    padding-top: 1.5rem;
+  }
+
+  .header::before {
+    content: "";
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.18);
+  }
+
+  /* El pie del sheet no se pierde con el teclado ni con el scroll. */
+  .footer {
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+    flex-shrink: 0;
+  }
+
+  /* El contenedor de items no se queda tapado por el footer al scrolllear. */
+  .items {
+    padding-bottom: 1.5rem;
+  }
+
+  /* Objetivos táctiles más generosos en los controles de cantidad. */
+  .itemQuantity button {
+    min-width: 40px;
+    min-height: 40px;
+  }
+
+  .checkoutBtn {
+    min-height: 52px;
+    font-size: 1.0625rem;
+  }
 }
 
 @media (max-width: 480px) {

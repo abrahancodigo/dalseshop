@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useBackToClose } from "@/hooks/useBackToClose";
 import { useCart } from "@/context/CartContext";
 import { useStore } from "@/context/StoreContext";
 import { formatPrice } from "@/lib/format";
+import { lockScroll, unlockScroll } from "@/lib/scrollLock";
 import { Link } from "react-router-dom";
 import {
   HiOutlineXMark,
@@ -32,15 +34,21 @@ export default function CartDrawer() {
   const [shouldRender, setShouldRender] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
 
+  useBackToClose(isOpen, () => setIsOpen(false));
+
   useEffect(() => {
     if (isOpen) {
       setShouldRender(true);
       setIsClosing(false);
+      // Bloquear el scroll del documento mientras el drawer está abierto.
+      lockScroll();
     } else if (shouldRender) {
       setIsClosing(true);
       const timer = setTimeout(() => {
         setShouldRender(false);
         setIsClosing(false);
+        // Restaurar el scroll una vez que el drawer ha terminado de cerrarse.
+        unlockScroll();
       }, 300);
       return () => clearTimeout(timer);
     }
