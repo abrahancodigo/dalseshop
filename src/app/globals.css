@@ -13,9 +13,10 @@
   --font-headings: 'Inter', sans-serif;
   --border-radius: 8px;
 
-  /* Derived colors */
-  --color-primary-light: color-mix(in srgb, var(--color-primary) 15%, white);
-  --color-primary-dark: color-mix(in srgb, var(--color-primary) 85%, black);
+  /* Derived colors — fallback estático para Firefox < 113 (sin color-mix) */
+  --color-primary-light: rgba(108, 92, 231, 0.15);
+  --color-primary-dark: #5a4bc4;
+
   --color-surface: #F8F9FA;
   --color-border: #E2E8F0;
   --color-muted: #475569;
@@ -45,6 +46,14 @@
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Soporte moderno color-mix() — sobrescribe los fallbacks en Firefox >= 113 y Chrome */
+@supports (color: color-mix(in srgb, red 50%, blue)) {
+  :root {
+    --color-primary-light: color-mix(in srgb, var(--color-primary) 15%, white);
+    --color-primary-dark: color-mix(in srgb, var(--color-primary) 85%, black);
+  }
 }
 
 /* Admin Light Theme */
@@ -461,6 +470,7 @@ ul, ol {
 /* Glassmorphism utility */
 .glass-panel {
   background: rgba(255, 255, 255, 0.7);
+  -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.3);
@@ -469,6 +479,7 @@ ul, ol {
 
 .glass-dark {
   background: rgba(13, 27, 42, 0.7);
+  -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -625,6 +636,12 @@ ul, ol {
   background: var(--color-muted);
 }
 
+/* Scrollbar estándar W3C — para Firefox (ignora ::-webkit-scrollbar) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
 /* Admin Scrollbar overrides */
 [data-admin-theme='dark'] ::-webkit-scrollbar-thumb {
   background: #475569;
@@ -640,6 +657,15 @@ ul, ol {
 
 [data-admin-theme='light'] ::-webkit-scrollbar-thumb:hover {
   background: #64748B;
+}
+
+/* Scrollbar estándar W3C para admin — Firefox */
+[data-admin-theme='dark'] * {
+  scrollbar-color: #475569 transparent;
+}
+
+[data-admin-theme='light'] * {
+  scrollbar-color: #94A3B8 transparent;
 }
 
 /* Scroll Reveal Animations */
@@ -698,7 +724,6 @@ ul, ol {
   body:has([data-no-tabbar]) {
     padding-bottom: 0;
   }
-
   /* Los controles no deben seleccionar texto al mantener pulsado. */
   button,
   a,

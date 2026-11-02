@@ -40,6 +40,7 @@
   width: 700px;
   height: 700px;
   border-radius: 50%;
+  background: rgba(0, 206, 201, 0.12);
   background: color-mix(in srgb, var(--blog-accent, var(--color-accent)) 12%, transparent);
   filter: blur(140px);
   animation: orbFloat 14s ease-in-out infinite;
@@ -52,6 +53,7 @@
   width: 550px;
   height: 550px;
   border-radius: 50%;
+  background: rgba(108, 92, 231, 0.12);
   background: color-mix(in srgb, var(--color-primary) 12%, transparent);
   filter: blur(120px);
   animation: orbFloat 17s ease-in-out infinite reverse;
@@ -90,6 +92,7 @@
   border-radius: 999px;
   font-size: 0.8125rem;
   font-weight: 500;
+  color: rgba(255,255,255,0.55);
   color: color-mix(in srgb, var(--blog-text, #fff) 55%, transparent);
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.06);
@@ -109,9 +112,11 @@
   border-radius: 999px;
   font-size: 0.75rem;
   font-weight: 600;
+  background: rgba(0, 206, 201, 0.12);
   background: color-mix(in srgb, var(--blog-accent, var(--color-accent)) 12%, transparent);
   color: var(--blog-accent, var(--color-accent));
-  border: 1px solid color-mix(in srgb, var(--blog-accent, var(--color-accent)) 20%, transparent);
+  border: 1px solid rgba(0, 206, 201, 0.2);
+  border-color: color-mix(in srgb, var(--blog-accent, var(--color-accent)) 20%, transparent);
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -183,6 +188,7 @@
   align-items: center;
   gap: 0.4rem;
   font-size: 0.85rem;
+  color: rgba(255,255,255,0.5);
   color: color-mix(in srgb, var(--blog-text, #fff) 50%, transparent);
 }
 
@@ -195,12 +201,14 @@
   width: 4px;
   height: 4px;
   border-radius: 50%;
+  background: rgba(255,255,255,0.25);
   background: color-mix(in srgb, var(--blog-text, #fff) 25%, transparent);
 }
 
 .content {
   font-size: 1.125rem;
   line-height: 1.9;
+  color: rgba(255,255,255,0.82);
   color: color-mix(in srgb, var(--blog-text, #fff) 82%, transparent);
 }
 
@@ -250,6 +258,7 @@
   margin: 2rem 0;
   background: rgba(255,255,255,0.03);
   border-radius: 0 16px 16px 0;
+  color: rgba(255,255,255,0.65);
   color: color-mix(in srgb, var(--blog-text, #fff) 65%, transparent);
   font-style: italic;
   line-height: 1.8;
@@ -295,6 +304,7 @@
   border-radius: 999px;
   background: var(--blog-card-bg, rgba(255,255,255,0.04));
   border: 1px solid rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.55);
   color: color-mix(in srgb, var(--blog-text, #fff) 55%, transparent);
   font-size: 0.8125rem;
   font-weight: 500;
@@ -371,6 +381,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  background: linear-gradient(135deg, rgba(0, 206, 201, 0.5), rgba(108, 92, 231, 0.5));
   background: linear-gradient(135deg, color-mix(in srgb, var(--blog-gradient-from, var(--color-accent)) 50%, transparent), color-mix(in srgb, var(--blog-gradient-to, var(--color-primary)) 50%, transparent));
   font-size: 2rem;
   color: rgba(255,255,255,0.6);
@@ -384,6 +395,7 @@
   display: inline-block;
   padding: 0.2rem 0.6rem;
   border-radius: 999px;
+  background: rgba(0, 206, 201, 0.12);
   background: color-mix(in srgb, var(--blog-accent, var(--color-accent)) 12%, transparent);
   color: var(--blog-accent, var(--color-accent));
   font-size: 0.7rem;
@@ -444,6 +456,7 @@
 }
 
 .notFoundText {
+  color: rgba(255,255,255,0.45);
   color: color-mix(in srgb, var(--blog-text, #fff) 45%, transparent);
   margin-bottom: 2rem;
 }
@@ -464,6 +477,7 @@
 
 .notFoundBtn:hover {
   transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 206, 201, 0.3);
   box-shadow: 0 8px 24px color-mix(in srgb, var(--blog-accent, var(--color-accent)) 30%, transparent);
 }
 
