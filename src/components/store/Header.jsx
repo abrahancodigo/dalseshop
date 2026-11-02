@@ -108,13 +108,6 @@ export default function StoreHeader() {
     }
   }, [totalItems]);
 
-  // Close modal on Escape key
-  const handleKeyDown = useCallback((e) => {
-    if (e.key === 'Escape' && searchModalOpen) {
-      setSearchModalOpen(false);
-    }
-  }, [searchModalOpen]);
-
   useBackToClose(menuOpen, () => setMenuOpen(false));
 
   // Bloquear el scroll del documento mientras el drawer de navegación está abierto.
@@ -124,17 +117,6 @@ export default function StoreHeader() {
       return () => unlockScroll();
     }
   }, [menuOpen]);
-
-  useEffect(() => {
-    if (searchModalOpen) {
-      document.addEventListener('keydown', handleKeyDown);
-      lockScroll();
-    }
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      unlockScroll();
-    };
-  }, [searchModalOpen, handleKeyDown]);
 
   const menuItems = navigation?.header?.menuItems || [];
 

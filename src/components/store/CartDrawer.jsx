@@ -42,17 +42,18 @@ export default function CartDrawer() {
       setIsClosing(false);
       // Bloquear el scroll del documento mientras el drawer está abierto.
       lockScroll();
+      return () => {
+        unlockScroll();
+      };
     } else if (shouldRender) {
       setIsClosing(true);
       const timer = setTimeout(() => {
         setShouldRender(false);
         setIsClosing(false);
-        // Restaurar el scroll una vez que el drawer ha terminado de cerrarse.
-        unlockScroll();
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [isOpen, shouldRender]);
+  }, [isOpen]);
 
   if (!shouldRender) return null;
 

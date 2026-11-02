@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { BrowserRouter, useLocation } from 'react-router-dom'
 import AppRouter from '@/router'
 import Providers from '@/components/Providers'
+import { resetScrollLock } from '@/lib/scrollLock'
 import '@/app/globals.css'
 
 class ErrorBoundary extends Component {
@@ -60,6 +61,7 @@ function ScrollToTop() {
 
   // PASE 1 — sincronizado con router
   useEffect(() => {
+    resetScrollLock()
     scrollToTop()
   }, [pathname])
 

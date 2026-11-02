@@ -1,7 +1,6 @@
 "use client";
 
 import { createContext, useContext, useState } from "react";
-import { lockScroll, unlockScroll } from "@/lib/scrollLock";
 
 const ImageContext = createContext(null);
 
@@ -10,12 +9,10 @@ export function ImageProvider({ children }) {
 
   const openImage = (src) => {
     setImageSrc(src);
-    lockScroll(); // Prevenir scroll mientras el modal está abierto
   };
 
   const closeImage = () => {
     setImageSrc(null);
-    unlockScroll();
   };
 
   return (
